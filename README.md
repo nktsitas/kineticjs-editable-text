@@ -1,7 +1,7 @@
 kinetic-editable-text
 =====================
 
-* A plug in to KineticJS library, enabling text creation and edit directly on canvas.
+A plug in to KineticJS library, enabling text creation and edit directly on canvas.
 
 
 Summary
@@ -38,7 +38,7 @@ See index.html for example usage.
 Limitations
 -----------
 
-* Tested only with Kinetic v4.3.3
+Tested only with Kinetic v4.3.3
 
 
 Contributions

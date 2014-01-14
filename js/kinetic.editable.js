@@ -29,7 +29,6 @@ Kinetic.EditableText = function (config) {
 	this.lineHeightPx = config.lineHeight * textHeight;
 
 	this.focusRectW = (100<config.fontSize*3)?config.fontSize*4:100;
-	//this.focusRectH = config.fontSize+10;
 	this.focusRectH = textHeight+10;
 	this.initialRectH = textHeight+10;
 	this.focusRectColor = config.focusRectColor;
@@ -38,15 +37,12 @@ Kinetic.EditableText = function (config) {
 	this.tempText = Array();
 	this.tempText[0] = new Kinetic.Text(config);
 	this.currentLine = 0;
-	//this.currentText = this.tempText[0];
+
 	this.maxWidth = 0;
 	this.totalLines = 1;
 
 	this.stage = config.stage;
 
-	console.log(config.stage);
-	console.log(this.stage);
-	
 	this.currentWordLetters = 0;
 	this.currentWordCursorPos = 0;
 	
