@@ -5,9 +5,10 @@
  * Date: Mar 26 2013
  */
  
-///////////////////////////////////////////////////////////////////////
-//  EditableText
-///////////////////////////////////////////////////////////////////////
+////////////////////
+//  EditableText  //
+////////////////////
+
 /**
  * EditableText constructor.  EditableText extends Text
  * @constructor
@@ -28,6 +29,7 @@ Kinetic.EditableText = function (config) {
 	var textHeight = config.fontSize;
 	this.lineHeightPx = config.lineHeight * textHeight;
 
+	// focus rectangle - 'TextBox'
 	this.focusRectW = (100<config.fontSize*3)?config.fontSize*4:100;
 	this.focusRectH = textHeight+10;
 	this.initialRectH = textHeight+10;
@@ -59,6 +61,11 @@ Kinetic.EditableText = function (config) {
  * EditableText methods
  */
 Kinetic.EditableText.prototype = {
+	/*
+	 * function: focus
+	 * parameters: none
+	 * summary: 
+	 */
 	focus: function() {
 		try {
 			this.staticLayer = this.getLayer();
@@ -71,7 +78,6 @@ Kinetic.EditableText.prototype = {
 		
 		this.hide();
 		this.staticLayer.draw();
-		//this.setListening(false);
 		
 		this.focusRect = new Kinetic.Rect({
 			x: this.getX()-5,
@@ -105,101 +111,79 @@ Kinetic.EditableText.prototype = {
 		this.focusLayer.draw();
 		
 		var obj = this.stage.getIntersection(this.stage.getUserPosition());
-		console.log(obj);
 	},
 	
+	/* 
+	 * function: findCursorPosFromClick
+	 * params: Boolean secondary 
+	 * summary:  
+	 */
 	findCursorPosFromClick: function(secondary) {
-	
 		var that = this;
 		
 		$.each(this.tempText, function(index, iterTempText) {
 			iterTempText.setX(that.getX());
 			iterTempText.setY(that.getY() + index*that.lineHeightPx);
 			
+			// secondary check			
 			if (!secondary) that.focusLayer.add(iterTempText);
 			
-			console.log(iterTempText);
-			
-			console.log(that.stage);
 			var pos = that.stage.getUserPosition();
-			console.log('CHECKING COORDS');
-			if (!secondary) console.log("secondary!");
-			console.log(pos.x+","+pos.y);
-			console.log(iterTempText.getX()+","+iterTempText.getY());
-			
+
+			// Checking Coords
 			if ( 	(pos.y < iterTempText.getY() + that.lineHeightPx) &&
-					(pos.y > iterTempText.getY())  ) {
-						console.log("MATCH!!");
+					(pos.y > iterTempText.getY())  ) 
+			{
+				// Match
+				that.currentLine = index;
+				
+				var letterFound = false;
+				var iterations = 0
+				var theWord = iterTempText.clone();
+				var wordW=theWord.getWidth();
+				var cursorX = pos.x+5;
+				
+				while (wordW>0 && iterations < 4000) {
+					wordW = theWord.getWidth();
+					curText = theWord.getText();
+					theWord.setText(curText.substring(0,curText.length-1));
+					iterations++;
+				}
+				
+				that.currentWordLetters = iterations==0?0:iterations-1;
+				
+				iterations = 0;
+				theWord = that.tempText[that.currentLine].clone();
+				wordW=theWord.getWidth();
+				
+				var prevWordW;
+				var toLeft=true;
+				
+				while (wordW>0) {
+					prevWordW = wordW;
+					wordW = theWord.getWidth();
+					
+					if (pos.x > that.tempText[that.currentLine].getX() + wordW) {
+						// Match
+						// Calculate Diffs and decide whether to go left or right
+						cursorX = that.tempText[that.currentLine].getX() + wordW;
 						
-						that.currentLine = index;
+						if ( (pos.x - (that.tempText[that.currentLine].getX() + wordW)) > (prevWordW-wordW)/2 ) toLeft=false;
 						
-						console.log("current Line is: "+that.currentLine);
-						
-						var letterFound = false;
-						var iterations = 0
-						var theWord = iterTempText.clone();
-						var wordW=theWord.getWidth();
-						var cursorX = pos.x+5;
-						
-						while (wordW>0 && iterations < 4000) {
-							wordW = theWord.getWidth();
-							console.log("wordW: "+wordW);
-							console.log("iterations: "+iterations);
-							curText = theWord.getText();
-							theWord.setText(curText.substring(0,curText.length-1));
-							iterations++;
-						}
-						
-						that.currentWordLetters = iterations==0?0:iterations-1;
-						
-						iterations = 0
-						theWord = that.tempText[that.currentLine].clone();
-						wordW=theWord.getWidth();
-						
-						var prevWordW;
-						var toLeft=true;
-						
-						console.log("wordW START: "+wordW);
-						while (wordW>0) {
-							prevWordW = wordW;
-							wordW = theWord.getWidth();
-							console.log("prevWordW: "+prevWordW);
-							console.log("wordW: "+wordW);
-							
-							if (pos.x > that.tempText[that.currentLine].getX() + wordW) {
-								console.log("OMG MATCCHHH!!");
-								console.log("diff is: "+ (pos.x - (that.tempText[that.currentLine].getX() + wordW)) )
-								console.log("letters diff is: "+ (prevWordW-wordW));
-								cursorX = that.tempText[that.currentLine].getX() + wordW;
-								
-								if ( (pos.x - (that.tempText[that.currentLine].getX() + wordW)) > (prevWordW-wordW)/2 ) toLeft=false;
-								
-								console.log("toLeft: "+toLeft);
-								
-								that.currentWordCursorPos = that.currentWordLetters - iterations;
-								break;
-							}
-							
-							curText = theWord.getText();
-							theWord.setText(curText.substring(0,curText.length-1));
-							
-							iterations++;
-						}
-						
-						if (!toLeft && that.currentWordCursorPos<that.currentWordLetters) that.currentWordCursorPos++;
-						
-						that.detectCursorPosition();
-						
-						//var cursorLineX = cursorX;
-						//var cursorLineY = iterTempText.getY();
-						//var cursorLineHeight = that.focusRectH-10;
-						
-						//that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
+						that.currentWordCursorPos = that.currentWordLetters - iterations;
+						break;
 					}
-			
-			//var lalaText = new Kinetic.Text(that.config);
-			//var lalaText = iterTempText.clone();
-			//that.focusLayer.add(lalaText);
+					
+					curText = theWord.getText();
+					theWord.setText(curText.substring(0,curText.length-1));
+					
+					iterations++;
+				}
+				
+				if (!toLeft && that.currentWordCursorPos<that.currentWordLetters) that.currentWordCursorPos++;
+				
+				that.detectCursorPosition();
+			}
 		});
 		
 		that.focusLayer.draw();
@@ -219,41 +203,26 @@ Kinetic.EditableText.prototype = {
 	},
 	
 	countLetters: function(theWord) {
-		console.log("count letters");
-		console.log(theWord);
-		console.log(theWord.getWidth());
-		
 		var iterations = 0;
-		//var theWord = that.tempText[that.currentLine].clone();
 		var wordW=theWord.getWidth();
 		
 		while (wordW>0 && iterations < 4000) {
 			wordW = theWord.getWidth();
-			console.log("wordW: "+wordW);
-			console.log("iterations: "+iterations);
 			curText = theWord.getText();
 			theWord.setText(curText.substring(0,curText.length-1));
 			iterations++;
 		}
 		
-		//that.currentWordLetters = iterations==0?0:iterations-1;
-		
 		return iterations==0?0:iterations-1;
 	},
 	
 	detectCursorPosition: function() {
-		console.log("detectCursorPosition");
-		console.log(this.currentLine);
-		console.log(this.currentWordCursorPos);
-		console.log(this.currentWordLetters);
-		
 		var theWord = this.tempText[this.currentLine].clone();
 		var wordW = theWord.getWidth();
 		var cursorX = this.cursorLine.getX();
 		var curText = theWord.getText();
 		
 		theWord.setText(curText.substring(0,this.currentWordCursorPos));
-		//cursorX = this.currentText.getX() + theWord.getWidth();
 		cursorX = this.tempText[this.currentLine].getX() + theWord.getWidth();
 		
 		var cursorLineX = cursorX;
@@ -263,35 +232,17 @@ Kinetic.EditableText.prototype = {
 		this.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
 	},
 	
+	// Check if user's click was inside this text
 	checkClick: function() {
-	
-		console.log('CHECKING checkClick');
-		
 		var pos = this.stage.getUserPosition();
 			
-		console.log(pos.x+","+pos.y);
-		console.log(this.getX()+","+this.getY());
-		console.log(this.focusRectW+","+this.focusRectH);
-		
-		console.log((pos.x > this.getX()));
-		console.log((pos.x < this.getX() + this.focusRect.getWidth()));
-		console.log((pos.y > this.getY()));
-		console.log((pos.y < this.getY() + this.focusRect.getHeight()));
-		
-		return ( (pos.x > this.getX()) && (pos.x < this.getX() + this.focusRect.getWidth()) &&
-			(pos.y > this.getY()) && (pos.y < this.getY() + this.focusRect.getHeight()) );
+		return ( 
+			(pos.x > this.getX()) && (pos.x < this.getX() + this.focusRect.getWidth()) &&
+			(pos.y > this.getY()) && (pos.y < this.getY() + this.focusRect.getHeight()) 
+		);
 	},
 	
 	unfocus: function(e) {
-	
-		//console.log(this.checkClick());
-		
-		//if (this.checkClick()) {
-			//console.log("STOP this madness!!");
-			//e.cancelBubble = true;
-			//return false;
-		//}
-			
 		clearInterval(this.cursorInterval);
 		
 		var finalText = '';
@@ -322,26 +273,17 @@ Kinetic.EditableText.prototype = {
 		$("body").off("keydown");
 		$("body").off("keypress");
 		
-		console.log("ELA MWRE UNFOCUSSSS before simu: "+this.unfocusedOnce);
-		
 		this.simulate("unfocusText");
 		
-		
 		this.unfocusedOnce = true;
-		
-		console.log("ELA MWRE UNFOCUSSSS: "+this.unfocusedOnce);
 	},
 	
 	initKeyHandlers: function() {
 		var that = this;
-	
-		console.log("KEY HANDLERS ON!");
 		
 		//key handlers
 		$("body").on("keydown", function(e) {
 			var code = e.charCode || e.keyCode;
-			
-			console.log("keydown: "+code);
 			
 			// Keep cursor on when moving/writing
 			that.cursorLine.show();
@@ -357,11 +299,9 @@ Kinetic.EditableText.prototype = {
 			// -----
 			
 			switch (code) {
+				// 37: Left Arrow
+				// 39: Right Arrow
 				case 37: case 39:
-				
-					console.log(that.currentWordCursorPos);
-					console.log(that.currentWordLetters);
-					
 					if (code==37 && that.currentWordCursorPos == 0) {
 						
 						if (that.currentLine == 0) return false;
@@ -400,21 +340,7 @@ Kinetic.EditableText.prototype = {
 					}
 					
 					code==37?that.currentWordCursorPos--:that.currentWordCursorPos++;
-					code==37?console.log("left"):console.log("right");
-					
-					// var theWord = that.tempText[that.currentLine].clone();
-					// var wordW = theWord.getWidth();
-					// var cursorX = that.cursorLine.getX();
-					// var curText = theWord.getText();
-		// 			
-					// theWord.setText(curText.substring(0,that.currentWordCursorPos));
-					// cursorX = that.currentText.getX() + theWord.getWidth();
-		// 			
-					// var cursorLineX = cursorX;
-					// var cursorLineY = that.tempText[that.currentLine].getY();
-					// var cursorLineHeight = that.focusRectH-10;
-		// 			
-					// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
+					//code==37?console.log("left"):console.log("right");
 					
 					that.detectCursorPosition();
 					
@@ -422,92 +348,64 @@ Kinetic.EditableText.prototype = {
 					
 					return false;
 					break;
+				// 38: Up Arrow
+				// 40: Down Arrow
 				case 38: case 40:
-					code==38?console.log("up"):console.log("down");
+					// code==38?console.log("up"):console.log("down");
 					
 					if (code==38 && that.currentLine==0) return false;
 					if (code==40 && that.currentLine==that.totalLines-1) return false;
 					
 					code==38?that.currentLine--:that.currentLine++;
 					
-					// var theWord = that.tempText[that.currentLine].clone();
-					// var wordW = theWord.getWidth();
-					// var cursorX = that.cursorLine.getX();
-					// var curText = theWord.getText();
-		// 			
-					// theWord.setText(curText.substring(0,that.currentWordCursorPos));
-					// cursorX = that.currentText.getX() + theWord.getWidth();
-		// 			
-					// var cursorLineX = cursorX;
-					// var cursorLineY = that.tempText[that.currentLine].getY();
-					// var cursorLineHeight = that.focusRectH-10;
-		// 			
-					// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-					
-					console.log(that.cursorLine);
-					console.log(that.cursorLine.getPoints());
-					console.log(that.cursorLine.getPoints()[0]);
-					
 					var pos = { 
 						x: that.cursorLine.getPoints()[0].x,
 						y: that.tempText[that.currentLine].getY(),
 					}
 					
-			console.log('CHECKING COORDS se fash');
-			console.log(pos.x+","+pos.y);
-			console.log(that.tempText[that.currentLine].getX()+","+that.tempText[that.currentLine].getY());
+					// TODO this must be a copy-paste from somewhere...
+					var iterations = 0
+					var theWord = that.tempText[that.currentLine].clone();
+					var wordW=theWord.getWidth();
+					var cursorX = pos.x+5;
 					
-						var iterations = 0
-						var theWord = that.tempText[that.currentLine].clone();
-						var wordW=theWord.getWidth();
-						var cursorX = pos.x+5;
+					while (wordW>0 && iterations < 4000) {
+						wordW = theWord.getWidth();
+						curText = theWord.getText();
+						theWord.setText(curText.substring(0,curText.length-1));
+						iterations++;
+					}
+					
+					that.currentWordLetters = iterations==0?0:iterations-1;
+					
+					iterations = 0
+					theWord = that.tempText[that.currentLine].clone();
+					wordW=theWord.getWidth();
+					
+					var prevWordW;
+					var toLeft=true;
+					
+					while (wordW>0) {
+						prevWordW = wordW;
+						wordW = theWord.getWidth();
 						
-						while (wordW>0 && iterations < 4000) {
-							wordW = theWord.getWidth();
-							console.log("wordW: "+wordW);
-							console.log("iterations: "+iterations);
-							curText = theWord.getText();
-							theWord.setText(curText.substring(0,curText.length-1));
-							iterations++;
+						if (pos.x > that.tempText[that.currentLine].getX() + wordW) {
+							cursorX = that.tempText[that.currentLine].getX() + wordW;
+							
+							if ( (pos.x - (that.tempText[that.currentLine].getX() + wordW)) > (prevWordW-wordW)/2 ) toLeft=false;
+							
+							that.currentWordCursorPos = that.currentWordLetters - iterations
+							break;
 						}
 						
-						that.currentWordLetters = iterations==0?0:iterations-1;
+						curText = theWord.getText();
+						theWord.setText(curText.substring(0,curText.length-1));
 						
-						iterations = 0
-						theWord = that.tempText[that.currentLine].clone();
-						wordW=theWord.getWidth();
-						
-						var prevWordW;
-						var toLeft=true;
-						
-						console.log("wordW START: "+wordW);
-						while (wordW>0) {
-							prevWordW = wordW;
-							wordW = theWord.getWidth();
-							console.log("prevWordW: "+prevWordW);
-							console.log("wordW: "+wordW);
-							
-							if (pos.x > that.tempText[that.currentLine].getX() + wordW) {
-								console.log("OMG MATCCHHH!!");
-								console.log("diff is: "+ (pos.x - (that.tempText[that.currentLine].getX() + wordW)) )
-								console.log("letters diff is: "+ (prevWordW-wordW));
-								cursorX = that.tempText[that.currentLine].getX() + wordW;
-								
-								if ( (pos.x - (that.tempText[that.currentLine].getX() + wordW)) > (prevWordW-wordW)/2 ) toLeft=false;
-								
-								that.currentWordCursorPos = that.currentWordLetters - iterations
-								break;
-							}
-							
-							curText = theWord.getText();
-							theWord.setText(curText.substring(0,curText.length-1));
-							
-							iterations++;
-						}
+						iterations++;
+					}
+					// ****
 					
 					if (!toLeft && that.currentWordCursorPos<that.currentWordLetters) that.currentWordCursorPos++;
-					
-					console.log("telos");
 					
 					if (that.currentWordCursorPos > that.currentWordLetters) that.currentWordCursorPos = that.currentWordLetters;
 					
@@ -517,8 +415,10 @@ Kinetic.EditableText.prototype = {
 					
 					return false;
 					break;
+				// 35: End
+				// 36: Home
 				case 35: case 36:
-					code==35?console.log("end"):console.log("home");
+					// code==35?console.log("end"):console.log("home");
 					
 					if (code==36) that.currentWordCursorPos = 0;
 					if (code==35) that.currentWordCursorPos = that.currentWordLetters;
@@ -528,9 +428,12 @@ Kinetic.EditableText.prototype = {
 					that.focusLayer.draw();
 					return false;
 					break;
+				// 8: Backspace
+				// 46: Delete
 				case 8: case 46:
-					if (code==8) console.log("backspace mwre");
+					// if (code==8) console.log("backspace");
 				
+					// Backspace
 					if (code==8 && that.currentWordCursorPos == 0) {
 						
 						if (that.currentLine > 0) {
@@ -538,7 +441,6 @@ Kinetic.EditableText.prototype = {
 							var prevLineString = (that.tempText[that.currentLine-1])?that.tempText[that.currentLine-1].getText():"";
 							
 							var prevLineLettersCount = that.countLetters(that.tempText[that.currentLine-1].clone());
-							console.log(prevLineLettersCount);
 							
 							that.tempText[that.currentLine-1].setText(prevLineString + currentTextString);
 							
@@ -547,8 +449,6 @@ Kinetic.EditableText.prototype = {
 							that.currentWordCursorPos = prevLineLettersCount;
 							
 							for (i = that.currentLine+1 ; i < that.totalLines-1 ; i++) {
-								console.log("line: "+i);
-								
 								that.tempText[i].setText(that.tempText[i+1].getText());
 							}
 							
@@ -568,6 +468,7 @@ Kinetic.EditableText.prototype = {
 						
 						return false;
 					}
+					// Delete
 					if (code==46 && that.currentWordCursorPos == that.currentWordLetters) {
 						
 						if (that.currentLine < that.totalLines-1) {
@@ -577,13 +478,10 @@ Kinetic.EditableText.prototype = {
 							that.tempText[that.currentLine].setText(currentTextString + nextLineString);
 							
 							var nextLineLettersCount = that.countLetters(that.tempText[that.currentLine+1].clone());
-							console.log(nextLineLettersCount);
 							
 							that.currentWordLetters += nextLineLettersCount;
 						
 							for (i = that.currentLine+1 ; i < that.totalLines-1 ; i++) {
-								console.log("line: "+i);
-								
 								that.tempText[i].setText(that.tempText[i+1].getText());
 							}
 							
@@ -614,30 +512,12 @@ Kinetic.EditableText.prototype = {
 					var oldWidth = that.tempText[that.currentLine].getWidth();
 					that.tempText[that.currentLine].setText(deletedText);
 					
-					// var theWord = that.tempText[that.currentLine].clone();
-					// var wordW = theWord.getWidth();
-					// var cursorX = that.cursorLine.getX();
-					// var curText = theWord.getText();
-		// 			
-					// theWord.setText(curText.substring(0,that.currentWordCursorPos));
-					// cursorX = that.currentText.getX() + theWord.getWidth();
-		// 			
-					// var cursorLineX = cursorX;
-					// var cursorLineY = that.tempText[that.currentLine].getY();
-					// var cursorLineHeight = that.focusRectH-10;
-		// 			
-					// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-					
 					that.detectCursorPosition();
 					
 					$.each(that.tempText, function(index, iterTempText) {
 						if (iterTempText.getWidth() > that.maxWidth) that.maxWidth = iterTempText.getWidth();
 					});
 					
-					// if (that.maxWidth < that.tempText[that.currentLine].getWidth()) {
-						// that.maxWidth = that.tempText[that.currentLine].getWidth();
-					// }
-				
 					if (oldWidth >= that.maxWidth) {
 						that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
 						that.maxWidth = that.tempText[that.currentLine].getWidth();
@@ -650,10 +530,12 @@ Kinetic.EditableText.prototype = {
 					return false;
 				
 					break;
+				// 13: Enter
 				case 13:
 				
 					if (that.unfocusOnEnter) that.unfocus(e);
 					else {
+						// TODO again copy-pasted from somewhere. Beautify.
 						that.focusRect.setHeight(that.focusRect.getHeight() + that.lineHeightPx);
 						
 						that.currentLine++;
@@ -664,15 +546,11 @@ Kinetic.EditableText.prototype = {
 						
 						that.focusLayer.add(that.tempText[newLineIndex]);
 						
-						console.log(newLineIndex);
-						
 						that.tempText[newLineIndex].setX(that.getX());
 						that.tempText[newLineIndex].setY(that.getY() + newLineIndex*that.lineHeightPx);
 						
 						if (that.currentLine < that.totalLines-1) {
 							for (i = that.totalLines ; i > that.currentLine+1 ; i--) {
-								console.log("line: "+i);
-								
 								that.tempText[i-1].setText(that.tempText[i-2].getText());
 							}
 						}
@@ -689,35 +567,7 @@ Kinetic.EditableText.prototype = {
 						that.currentWordCursorPos = 0;
 						that.currentWordLetters = textAfterCursor.length;
 						
-						
-						// var theWord = that.tempText[that.currentLine].clone();
-						// var wordW = theWord.getWidth();
-						// var cursorX = that.cursorLine.getX();
-						// var curText = theWord.getText();
-			// 			
-						// theWord.setText(curText.substring(0,that.currentWordCursorPos));
-						// cursorX = that.currentText.getX() + theWord.getWidth();
-			// 			
-						// var cursorLineX = cursorX;
-						// var cursorLineY = that.tempText[that.currentLine].getY();
-						// var cursorLineHeight = that.focusRectH-10;
-			// 			
-						// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-						
 						that.detectCursorPosition();
-						
-						
-						
-						
-						// var cursorLineX = that.currentText.getX() + that.currentText.getWidth() + 2;
-						// var cursorLineY = that.currentText.getY();
-						// var cursorLineHeight = that.focusRectH-10;
-			// 			
-						// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-						
-						
-						
-						
 						
 						that.focusLayer.draw();
 					}
@@ -730,11 +580,13 @@ Kinetic.EditableText.prototype = {
 			return true;
 		});
 		
+		// General text input
 		$("body").on("keypress", function(e) {
 			var code = e.charCode || e.keyCode;
 			
-			console.log("keypress: "+code);
+			// console.log("keypress: "+code);
 			
+			// Ignore all keys handled in keydown above.
 			if (code == 8 || code == 13 || code == 37 || code == 38 || code == 39 || code == 40) return;
 			
 			var theChar = String.fromCharCode(code);
@@ -743,66 +595,21 @@ Kinetic.EditableText.prototype = {
 			var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
 			var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
 			
-			console.log(textBeforeCursor);
-			console.log(textAfterCursor);
-		
 			var newTextString = textBeforeCursor + theChar + textAfterCursor;
 			that.tempText[that.currentLine].setText(newTextString);
 			
 			that.currentWordCursorPos++;
 			that.currentWordLetters++;
 			
-			console.log(that.currentWordCursorPos);
-			console.log(that.currentWordLetters);
-			
-			
-			
-			// var theWord = that.tempText[that.currentLine].clone();
-			// var wordW = theWord.getWidth();
-			// var cursorX = that.cursorLine.getX();
-			// var curText = theWord.getText();
-		// 			
-			// theWord.setText(curText.substring(0,that.currentWordCursorPos));
-			// cursorX = that.currentText.getX() + theWord.getWidth();
-		// 			
-			// var cursorLineX = cursorX;
-			// var cursorLineY = that.tempText[that.currentLine].getY();
-			// var cursorLineHeight = that.focusRectH-10;
-		// 			
-			// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-			
 			that.detectCursorPosition();
-			
-			
-			
-			// var cursorLineX = that.currentText.getX() + that.currentText.getWidth() + 2;
-			// var cursorLineY = that.currentText.getY();
-			// var cursorLineHeight = that.focusRectH-10;
-		// 			
-			// that.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-			
-			
-			
-			
-			
 			
 			$.each(that.tempText, function(index, iterTempText) {
 				if (iterTempText.getWidth() > that.maxWidth) that.maxWidth = iterTempText.getWidth();
 			});
 			
-			// if (that.maxWidth < that.currentText.getWidth()) {
-				// that.maxWidth = that.currentText.getWidth();
-			// }
-			
 			if (that.maxWidth < that.tempText[that.currentLine].getWidth()) {
 				that.maxWidth = that.tempText[that.currentLine].getWidth();
 			}
-			
-			//that.focusRect.setWidth(80<that.maxWidth?that.maxWidth+20:100);
-			
-			// if (that.currentText.getWidth() >= that.maxWidth) {
-				// that.focusRect.setWidth(80<that.currentText.getWidth()?that.currentText.getWidth()+20:100);
-			// }
 			
 			if (that.tempText[that.currentLine].getWidth() >= that.maxWidth) {
 				that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
@@ -816,5 +623,5 @@ Kinetic.EditableText.prototype = {
 		});
 	},
 };
-// extend Line
+// extend Text
 Kinetic.Global.extend(Kinetic.EditableText, Kinetic.Text);

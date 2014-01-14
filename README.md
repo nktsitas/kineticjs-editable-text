@@ -26,7 +26,7 @@ Known Issues
 ------------
 
 * Selecting text is not supported.
-* Copy paste (outside text) is not fully functional yet.
+* Copy paste (from outside text) is not fully functional yet.
 
 
 Installing - Usage
