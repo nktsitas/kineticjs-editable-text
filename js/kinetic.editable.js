@@ -21,6 +21,7 @@ Kinetic.EditableText = function (config) {
 	config.lineHeight = config.lineHeight || 1.3;
 	config.focusRectColor = config.focusRectColor || 'black';
 	config.unfocusOnEnter = config.unfocusOnEnter || false;
+	config.pasteModal = config.pasteModal || null;
 	
 	if (config.focusLayer==undefined) {
 		throw new Error("Please Provide a Focus Layer (config.focusLayer)."); 
@@ -55,6 +56,9 @@ Kinetic.EditableText = function (config) {
 	this.classType = "EditableText";
 	
 	this.config = config;
+	
+	this.ctrlDown = false;
+	this.shiftDown = false;
 };
 
 /*
@@ -272,6 +276,7 @@ Kinetic.EditableText.prototype = {
 		
 		$("body").off("keydown");
 		$("body").off("keypress");
+		$("body").off("keyup");
 		
 		this.simulate("unfocusText");
 		
@@ -299,6 +304,61 @@ Kinetic.EditableText.prototype = {
 			// -----
 			
 			switch (code) {
+				// 16: Shift
+				case 16:
+					if (that.shiftDown) break;
+					that.shiftDown = true;
+					break;
+				// 17: Ctrl
+				case 17:
+					if (that.ctrlDown) break;
+					that.ctrlDown = true;
+					break;
+				// 86: 'v' -> Paste
+				case 86:
+					if (that.ctrlDown) {
+						$("#"+that.config.pasteModal).val('');
+						$("#"+that.config.pasteModal).focus();
+
+						setTimeout(function() {
+							var currentTextString = that.tempText[that.currentLine].getText();
+							var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
+							var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
+							
+							var pastedText = $("#"+that.config.pasteModal).val();
+							
+							var pastedTextLinesArray = pastedText.split(/\r\n|\r|\n/g);
+							
+							$.each(pastedTextLinesArray, function(index, iterPastedLine) {
+								if (index > 0) that.newLine();
+								
+								var newTextString = ((index > 0)?'':textBeforeCursor) + iterPastedLine + ((index == pastedTextLinesArray.length-1)?textAfterCursor:'');
+								that.tempText[that.currentLine].setText(newTextString);
+								
+								that.currentWordCursorPos+=iterPastedLine.length;
+								that.currentWordLetters+=iterPastedLine.length;
+								
+								that.detectCursorPosition();
+								
+								$.each(that.tempText, function(index2, iterTempText) {
+									if (iterTempText.getWidth() > that.maxWidth) that.maxWidth = iterTempText.getWidth();
+								});
+								
+								if (that.maxWidth < that.tempText[that.currentLine].getWidth()) {
+									that.maxWidth = that.tempText[that.currentLine].getWidth();
+								}
+								
+								if (that.tempText[that.currentLine].getWidth() >= that.maxWidth) {
+									that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
+								}
+								
+								that.focusRectW = that.focusRect.getWidth();
+								that.focusLayer.draw();
+							})
+						}, 1);
+					}
+					
+					break;
 				// 37: Left Arrow
 				// 39: Right Arrow
 				case 37: case 39:
@@ -535,41 +595,14 @@ Kinetic.EditableText.prototype = {
 				
 					if (that.unfocusOnEnter) that.unfocus(e);
 					else {
-						// TODO again copy-pasted from somewhere. Beautify.
-						that.focusRect.setHeight(that.focusRect.getHeight() + that.lineHeightPx);
-						
-						that.currentLine++;
-						that.totalLines++;
-						
-						var newLineIndex = that.totalLines - 1;
-						that.tempText[newLineIndex] = new Kinetic.Text(that.config);
-						
-						that.focusLayer.add(that.tempText[newLineIndex]);
-						
-						that.tempText[newLineIndex].setX(that.getX());
-						that.tempText[newLineIndex].setY(that.getY() + newLineIndex*that.lineHeightPx);
-						
-						if (that.currentLine < that.totalLines-1) {
-							for (i = that.totalLines ; i > that.currentLine+1 ; i--) {
-								that.tempText[i-1].setText(that.tempText[i-2].getText());
-							}
+						if (that.ctrlDown) {
+							that.unfocus(e);
+							that.ctrlDown=false;
+							focusedText = undefined;
 						}
-						
-						// ---
-						var currentTextString = that.tempText[that.currentLine-1].getText();
-						var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
-						var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
-						
-						that.tempText[that.currentLine-1].setText(textBeforeCursor);
-						that.tempText[that.currentLine].setText(textAfterCursor);
-						// ---
-						
-						that.currentWordCursorPos = 0;
-						that.currentWordLetters = textAfterCursor.length;
-						
-						that.detectCursorPosition();
-						
-						that.focusLayer.draw();
+						else {
+							that.newLine();
+						}
 					}
 					
 					return false;
@@ -578,6 +611,20 @@ Kinetic.EditableText.prototype = {
 			}
 			
 			return true;
+		});
+		
+		$("body").on("keyup", function(e) {
+			var code = e.charCode || e.keyCode;
+			
+			switch (code) {
+				case 16:
+					that.shiftDown = false;
+					break;
+				case 17:
+					that.ctrlDown = false;
+					break;
+				default: break;
+			}
 		});
 		
 		// General text input
@@ -621,6 +668,47 @@ Kinetic.EditableText.prototype = {
 			
 			return false;
 		});
+	},
+	
+	newLine: function() {
+		var that = this;
+		
+		that.focusRect.setHeight(that.focusRect.getHeight() + that.lineHeightPx);
+						
+		that.currentLine++;
+		that.totalLines++;
+		
+		var newLineIndex = that.totalLines - 1;
+		that.tempText[newLineIndex] = new Kinetic.Text(that.config);
+		
+		that.focusLayer.add(that.tempText[newLineIndex]);
+		
+		that.tempText[newLineIndex].setX(that.getX());
+		that.tempText[newLineIndex].setY(that.getY() + newLineIndex*that.lineHeightPx);
+		
+		if (that.currentLine < that.totalLines-1) {
+			for (i = that.totalLines ; i > that.currentLine+1 ; i--) {
+				console.log("line: "+i);
+				
+				that.tempText[i-1].setText(that.tempText[i-2].getText());
+			}
+		}
+		
+		// ---
+		var currentTextString = that.tempText[that.currentLine-1].getText();
+		var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
+		var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
+		
+		that.tempText[that.currentLine-1].setText(textBeforeCursor);
+		that.tempText[that.currentLine].setText(textAfterCursor);
+		// ---
+		
+		that.currentWordCursorPos = 0;
+		that.currentWordLetters = textAfterCursor.length;
+		
+		that.detectCursorPosition();
+		
+		that.focusLayer.draw();
 	},
 };
 // extend Text

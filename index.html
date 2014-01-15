@@ -1,9 +1,19 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
+		<style>
+			#pasteModalArea {
+				position:absolute; 
+				width:0; 
+				height:0; 
+				top:-20px; 
+				left:-20px;
+			}
+		</style>
 	</head>
 	<body>
 		<div id="container"></div>
+		<textarea rows="10" cols="60" id="pasteModalArea"></textarea>
 
 		<script src="js/jquery.min.js"></script>
 		<script src="js/kinetic-v4.3.3.js"></script>
@@ -30,7 +40,10 @@
 			// EditableText parameters
 			var focusRectW=100;
 			var focusRectH=30;
-			var focusedText;
+			// **IMPORTANT** focusedText variable must be accessible to kinetic.editable.js
+			// for Ctrl+Enter to work (unfocus). Ensure its a global variable.
+			// TODO remove this requirement.
+			var focusedText; 
 
 			var cancelTextMouseUp=false;
 			var canvas = stage.getContent().firstChild;
@@ -100,9 +113,10 @@
 					fontFamily: 'Courier',
 					fill: '#000000',
 					// ***
-					// ALWAYS provide the focus layer and stage.
+					// ALWAYS provide the focus layer and stage. pasteModal id to support ctrl+v paste.
 					focusLayer: layer,
 					stage: stage,
+					pasteModal: "pasteModalArea",
 					// *****
 					// modify hit function to detect clicks
 					drawHitFunc: function(canvas) {
