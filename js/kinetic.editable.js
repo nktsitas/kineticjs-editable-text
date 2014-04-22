@@ -1,8 +1,8 @@
 /**
  * KineticJS EditableText Extension
- * Compatible with KineticJS JavaScript Library v4.3.3
+ * Compatible with KineticJS JavaScript Library v5.1.0
  * Author: Nikos Tsitas
- * Date: Mar 26 2013
+ * Date: Apr 22 2014
  */
  
 ////////////////////
@@ -114,7 +114,7 @@ Kinetic.EditableText.prototype = {
 		
 		this.focusLayer.draw();
 		
-		var obj = this.stage.getIntersection(this.stage.getUserPosition());
+		var obj = this.stage.getIntersection(this.stage.getPointerPosition());
 	},
 	
 	/* 
@@ -132,7 +132,7 @@ Kinetic.EditableText.prototype = {
 			// secondary check			
 			if (!secondary) that.focusLayer.add(iterTempText);
 			
-			var pos = that.stage.getUserPosition();
+			var pos = that.stage.getPointerPosition();
 
 			// Checking Coords
 			if ( 	(pos.y < iterTempText.getY() + that.lineHeightPx) &&
@@ -238,7 +238,7 @@ Kinetic.EditableText.prototype = {
 	
 	// Check if user's click was inside this text
 	checkClick: function() {
-		var pos = this.stage.getUserPosition();
+		var pos = this.stage.getPointerPosition();
 			
 		return ( 
 			(pos.x > this.getX()) && (pos.x < this.getX() + this.focusRect.getWidth()) &&
@@ -278,7 +278,7 @@ Kinetic.EditableText.prototype = {
 		$("body").off("keypress");
 		$("body").off("keyup");
 		
-		this.simulate("unfocusText");
+		this.fire("unfocusText");
 		
 		this.unfocusedOnce = true;
 	},
@@ -709,7 +709,7 @@ Kinetic.EditableText.prototype = {
 		that.detectCursorPosition();
 		
 		that.focusLayer.draw();
-	},
+	}
 };
 // extend Text
-Kinetic.Global.extend(Kinetic.EditableText, Kinetic.Text);
+Kinetic.Util.extend(Kinetic.EditableText, Kinetic.Text);
