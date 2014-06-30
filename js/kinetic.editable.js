@@ -732,6 +732,38 @@ function init(KineticModule){
             that.focusRectW = that.focusRect.getWidth();
 
             that.focusLayer.draw();
+        },
+
+        text: function(string) {
+            var i;
+
+            if (arguments.length === 0) {
+                var text = "";
+
+                for (i = 0; i < this.tempText.length; i++){
+                    text += this.tempText[i].text();
+
+                    if (typeof this.tempText[i + 1] !== "undefined" && this.tempText[i + 1].text() !== '') text += "\n"
+                }
+
+                return text
+            } else {
+                if (typeof string === "string") {
+                    var lastLine = this.tempText.length - 1;
+
+                    this.currentLine = lastLine;
+                    this.currentWordCursorPos = this.tempText[lastLine].text().length;
+
+                    while (this.currentLine !== 0 || this.currentWordCursorPos !== 0) {
+                        this.removeChar("backspace");
+                    }
+
+                    for (i = 0; i < string.length; i++) {
+                        this.addChar(string[i]);
+                    }
+
+                } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string");
+            }
         }
     };
 
