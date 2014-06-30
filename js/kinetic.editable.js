@@ -575,7 +575,7 @@ function init(KineticModule){
                     var deletedTextEnd = deletedText.substring(code==8?that.currentWordCursorPos:that.currentWordCursorPos+1,deletedText.length);
                     deletedText = deletedTextStart+deletedTextEnd;
 
-                    if (code==8) that.currentWordCursorPos--;
+                    if (code === 8 && that.currentWordCursorPos > 0) that.currentWordCursorPos--;
                     that.currentWordLetters--;
 
                     var oldWidth = that.tempText[that.currentLine].getWidth();
