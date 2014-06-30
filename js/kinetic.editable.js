@@ -80,17 +80,9 @@ function init(KineticModule){
          * summary:
          */
         focus: function() {
-            try {
-                this.staticLayer = this.getLayer();
-            }
-            catch (e) {
-                throw new Error("Add to a layer first, before focus");
-            }
-
             this.initKeyHandlers();
 
             this.hide();
-            this.staticLayer.draw();
 
             this.focusRect = new Kinetic.Rect({
                 x: this.getX()-5,
@@ -279,7 +271,6 @@ function init(KineticModule){
             this.focusLayer.draw();
 
             this.show();
-            this.staticLayer.draw();
 
             if (this.maxWidth == 0) this.destroy();
 
