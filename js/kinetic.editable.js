@@ -108,14 +108,22 @@ function init(KineticModule){
                 that.focusLayer.draw();
             }, 500);
 
-            this.findCursorPosFromClick(false);
+            if (that.stage.getPointerPosition())
+                this.findCursorPosFromClick();
+
+            $.each(this.tempText, function(i, iterTempText) {
+                iterTempText.position({
+                    x: that.x(),
+                    y: that.y() + i * that.lineHeightPx
+                });
+
+                that.focusLayer.add(iterTempText)
+            });
 
             this.focusLayer.add(this.focusRect);
             this.focusLayer.add(this.cursorLine);
 
-            this.focusLayer.draw();
-
-            var obj = this.stage.getIntersection(this.stage.getPointerPosition());
+            this.focusLayer.draw()
         },
 
         /*
@@ -123,27 +131,19 @@ function init(KineticModule){
          * params: Boolean secondary
          * summary:
          */
-        findCursorPosFromClick: function(secondary) {
-            var that = this;
+        findCursorPosFromClick: function() {
+            var that = this,
+                pos = that.stage.getPointerPosition();
 
             $.each(this.tempText, function(index, iterTempText) {
-                iterTempText.setX(that.getX());
-                iterTempText.setY(that.getY() + index*that.lineHeightPx);
+                if ((pos.y < iterTempText.getY() + that.lineHeightPx) &&
+                    (pos.y > iterTempText.getY())) {
 
-                // secondary check
-                if (!secondary) that.focusLayer.add(iterTempText);
-
-                var pos = that.stage.getPointerPosition();
-
-                // Checking Coords
-                if ( 	(pos.y < iterTempText.getY() + that.lineHeightPx) &&
-                    (pos.y > iterTempText.getY())  )
-                {
                     // Match
                     that.currentLine = index;
 
                     var letterFound = false;
-                    var iterations = 0
+                    var iterations = 0;
                     var theWord = iterTempText.clone();
                     var wordW=theWord.getWidth();
                     var cursorX = pos.x+5;
