@@ -14,9 +14,8 @@
 function init(KineticModule){
     var Kinetic = window.Kinetic || KineticModule;
 
-    if (typeof Kinetic === "undefined") {
+    if (typeof Kinetic === "undefined")
         throw new Error("Kinetic must be a global variable or passed to init.");
-    }
 
     /**
      * EditableText constructor.  EditableText extends Text
@@ -35,8 +34,7 @@ function init(KineticModule){
         var textHeight = config.fontSize;
         this.lineHeightPx = config.lineHeight * textHeight;
 
-        // focus rectangle - 'TextBox'
-        this.initialRectW = (100<config.fontSize*3)?config.fontSize*4:100;
+        this.initialRectW = (100 < config.fontSize * 3) ? config.fontSize * 4 : 100;
         this.initialRectH = textHeight+10;
 
         this.focusRectW = this.initialRectW;
@@ -44,7 +42,7 @@ function init(KineticModule){
 
         this.focusRectColor = config.focusRectColor;
 
-        this.tempText = Array();
+        this.tempText = [];
         this.tempText[0] = new Kinetic.Text(config);
         this.currentLine = 0;
 
@@ -53,8 +51,6 @@ function init(KineticModule){
 
         this.currentWordLetters = 0;
         this.currentWordCursorPos = 0;
-
-        this.unfocusedOnce=false;
 
         this.noLayerError = new Error('The Kinetic.EditableText shape must be added to a layer!');
 
@@ -85,50 +81,57 @@ function init(KineticModule){
                 stage = this.getStage();
 
             if (!layer) throw this.noLayerError;
-            if (!stage) throw this.noStageError;
+            else if (!stage) throw this.noStageError;
+            else {
+                this.initKeyHandlers();
 
-            this.initKeyHandlers();
+                this.hide();
 
-            this.hide();
-
-            this.focusRect = new Kinetic.Rect({
-                x: this.getX()-5,
-                y: this.getY()-5,
-                width: this.focusRectW,
-                height: this.totalLines * this.lineHeightPx + 5,
-                stroke: this.focusRectColor,
-                strokeWidth: 1,
-                listening: false
-            });
-
-            this.cursorLine = new Kinetic.Line({
-                points: [this.getX() + this.getWidth() + 2,this.getY(),this.getX() + this.getWidth() + 2,this.getY()+this.focusRectH-10],
-                stroke: 'black'
-            });
-
-            this.cursorInterval = setInterval(function() {
-                if (that.cursorLine.isVisible()) that.cursorLine.hide();
-                else that.cursorLine.show();
-
-                layer.draw();
-            }, 500);
-
-            if (stage.getPointerPosition())
-                this.findCursorPosFromClick();
-
-            $.each(this.tempText, function(i, iterTempText) {
-                iterTempText.position({
-                    x: that.x(),
-                    y: that.y() + i * that.lineHeightPx
+                this.focusRect = new Kinetic.Rect({
+                    x: this.x() - 5,
+                    y: this.y() - 5,
+                    width: this.focusRectW,
+                    height: this.totalLines * this.lineHeightPx + 5,
+                    stroke: this.focusRectColor,
+                    strokeWidth: 1,
+                    listening: false
                 });
 
-                layer.add(iterTempText)
-            });
+                this.cursorLine = new Kinetic.Line({
+                    points: [
+                        this.x() + this.width() + 2,
+                        this.y(),
+                        this.x() + this.width() + 2,
+                        this.y() + this.focusRectH - 10
+                    ],
 
-            layer.add(this.focusRect);
-            layer.add(this.cursorLine);
+                    stroke: 'black'
+                });
 
-            layer.draw()
+                this.cursorInterval = setInterval(function() {
+                    if (that.cursorLine.isVisible()) that.cursorLine.hide();
+                    else that.cursorLine.show();
+
+                    layer.draw()
+                }, 500);
+
+                if (stage.getPointerPosition())
+                    this.findCursorPosFromClick();
+
+                $.each(this.tempText, function(i, iterTempText) {
+                    iterTempText.position({
+                        x: that.x(),
+                        y: that.y() + i * that.lineHeightPx
+                    });
+
+                    layer.add(iterTempText)
+                });
+
+                layer.add(this.focusRect);
+                layer.add(this.cursorLine);
+
+                layer.draw()
+            }
         },
 
         /*
@@ -142,171 +145,69 @@ function init(KineticModule){
                 layer = this.getLayer();
 
             if (!layer) throw this.noLayerError;
-            if (!stage) throw this.noStageError;
+            else if (!stage) throw this.noStageError;
+            else {
+                var pos = stage.getPointerPosition();
 
-            var pos = stage.getPointerPosition();
+                $.each(this.tempText, function(index, iterTempText) {
+                    if ((pos.y < iterTempText.y() + that.lineHeightPx) &&
+                        (pos.y > iterTempText.y())) {
 
-            $.each(this.tempText, function(index, iterTempText) {
-                if ((pos.y < iterTempText.getY() + that.lineHeightPx) &&
-                    (pos.y > iterTempText.getY())) {
+                        var prevWordW,
+                            curText,
+                            iterations = 0,
+                            theWord = iterTempText.clone(),
+                            wordW = theWord.width(),
+                            cursorX = pos.x+ 5,
+                            toLeft = true;
 
-                    // Match
-                    that.currentLine = index;
+                        that.currentLine = index;
 
-                    var letterFound = false;
-                    var iterations = 0;
-                    var theWord = iterTempText.clone();
-                    var wordW=theWord.getWidth();
-                    var cursorX = pos.x+5;
-
-                    while (wordW>0 && iterations < 4000) {
-                        wordW = theWord.getWidth();
-                        curText = theWord.getText();
-                        theWord.setText(curText.substring(0,curText.length-1));
-                        iterations++;
-                    }
-
-                    that.currentWordLetters = iterations==0?0:iterations-1;
-
-                    iterations = 0;
-                    theWord = that.tempText[that.currentLine].clone();
-                    wordW=theWord.getWidth();
-
-                    var prevWordW;
-                    var toLeft=true;
-
-                    while (wordW>0) {
-                        prevWordW = wordW;
-                        wordW = theWord.getWidth();
-
-                        if (pos.x > that.tempText[that.currentLine].getX() + wordW) {
-                            // Match
-                            // Calculate Diffs and decide whether to go left or right
-                            cursorX = that.tempText[that.currentLine].getX() + wordW;
-
-                            if ( (pos.x - (that.tempText[that.currentLine].getX() + wordW)) > (prevWordW-wordW)/2 ) toLeft=false;
-
-                            that.currentWordCursorPos = that.currentWordLetters - iterations;
-                            break;
+                        while (wordW>0 && iterations < 4000) {
+                            wordW = theWord.width();
+                            curText = theWord.text();
+                            theWord.text(curText.substring(0, curText.length-1));
+                            iterations++
                         }
 
-                        curText = theWord.getText();
-                        theWord.setText(curText.substring(0,curText.length-1));
+                        that.currentWordLetters = iterations == 0 ? 0 : iterations - 1;
 
-                        iterations++;
+                        iterations = 0;
+                        theWord = that.tempText[that.currentLine].clone();
+                        wordW = theWord.width();
+
+                        while (wordW>0) {
+                            prevWordW = wordW;
+                            wordW = theWord.width();
+
+                            if (pos.x > that.tempText[that.currentLine].x() + wordW) {
+                                // Calculate Diffs and decide whether to go left or right
+
+                                cursorX = that.tempText[that.currentLine].x() + wordW;
+
+                                if ((pos.x - (that.tempText[that.currentLine].x() + wordW)) >
+                                    (prevWordW - wordW) / 2 )
+                                        toLeft = false;
+
+                                that.currentWordCursorPos = that.currentWordLetters - iterations;
+                                break
+                            }
+
+                            curText = theWord.text();
+                            theWord.text(curText.substring(0, curText.length-1));
+
+                            iterations++
+                        }
+
+                        if (!toLeft && that.currentWordCursorPos <
+                            that.currentWordLetters)
+                                that.currentWordCursorPos++;
+
+                        that.detectCursorPosition()
                     }
-
-                    if (!toLeft && that.currentWordCursorPos<that.currentWordLetters) that.currentWordCursorPos++;
-
-                    that.detectCursorPosition();
-                }
-            });
-
-            layer.draw();
-
-            // Keep cursor on when moving/writing
-            that.cursorLine.show();
-            layer.draw();
-
-            clearInterval(that.cursorInterval);
-            that.cursorInterval = setInterval(function() {
-                if (that.cursorLine.isVisible()) that.cursorLine.hide();
-                else that.cursorLine.show();
+                });
 
                 layer.draw();
-            }, 500);
-            // -----
-        },
-
-        countLetters: function(theWord) {
-            var iterations = 0;
-            var wordW=theWord.getWidth();
-
-            while (wordW>0 && iterations < 4000) {
-                wordW = theWord.getWidth();
-                curText = theWord.getText();
-                theWord.setText(curText.substring(0,curText.length-1));
-                iterations++;
-            }
-
-            return iterations==0?0:iterations-1;
-        },
-
-        detectCursorPosition: function() {
-            var theWord = this.tempText[this.currentLine].clone();
-            var wordW = theWord.getWidth();
-            var cursorX = this.cursorLine.getX();
-            var curText = theWord.getText();
-
-            theWord.setText(curText.substring(0,this.currentWordCursorPos));
-            cursorX = this.tempText[this.currentLine].getX() + theWord.getWidth();
-
-            var cursorLineX = cursorX;
-            var cursorLineY = this.tempText[this.currentLine].getY();
-            var cursorLineHeight = this.focusRectH-10;
-
-            this.cursorLine.setPoints([cursorLineX, cursorLineY, cursorLineX, cursorLineY+cursorLineHeight]);
-        },
-
-        // Check if user's click was inside this text
-        checkClick: function() {
-            var stage = this.getStage();
-
-            if (!stage) throw this.noStageError;
-
-            var pos = stage.getPointerPosition();
-
-            return (
-                (pos.x > this.getX()) && (pos.x < this.getX() + this.focusRect.getWidth()) &&
-                (pos.y > this.getY()) && (pos.y < this.getY() + this.focusRect.getHeight())
-                );
-        },
-
-        unfocus: function(e) {
-            var finalText = '',
-                layer = this.getLayer();
-
-            if (!layer) throw this.noLayerError;
-
-            clearInterval(this.cursorInterval);
-
-            $.each(this.tempText, function(index, iterTextLine) {
-                finalText += iterTextLine.getText()+"\n";
-            });
-
-            this.setText(finalText);
-
-            this.focusRect.destroy();
-            this.cursorLine.destroy();
-            //this.currentText.destroy();
-
-            //this.tempText.destroy();
-            $.each(this.tempText, function(index, iterTextLine) {
-                iterTextLine.destroy();
-            });
-
-            this.show();
-
-            layer.draw();
-
-            $("body").off("keydown");
-            $("body").off("keypress");
-            $("body").off("keyup");
-
-            this.fire("unfocusText");
-
-            this.unfocusedOnce = true;
-        },
-
-        initKeyHandlers: function() {
-            var that = this,
-                layer = this.getLayer();
-
-            if (!layer) throw this.noLayerError;
-
-            //key handlers
-            $("body").on("keydown", function(e) {
-                var code = e.charCode || e.keyCode;
 
                 // Keep cursor on when moving/writing
                 that.cursorLine.show();
@@ -317,244 +218,331 @@ function init(KineticModule){
                     if (that.cursorLine.isVisible()) that.cursorLine.hide();
                     else that.cursorLine.show();
 
-                    layer.draw();
-                }, 500);
-                // -----
+                    layer.draw()
+                }, 500)
+            }
+        },
 
-                switch (code) {
-                    // 16: Shift
-                    case 16:
-                        if (that.shiftDown) break;
-                        that.shiftDown = true;
-                        break;
-                    // 17: Ctrl
-                    case 17:
-                        if (that.ctrlDown) break;
-                        that.ctrlDown = true;
-                        break;
-                    // 86: 'v' -> Paste
-                    case 86:
-                        if (that.ctrlDown) {
-                            $("#"+that.config.pasteModal).val('');
-                            $("#"+that.config.pasteModal).focus();
+        countLetters: function(theWord) {
+            var iterations = 0,
+                wordW = theWord.width();
 
-                            setTimeout(function() {
-                                var currentTextString = that.tempText[that.currentLine].getText();
-                                var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
-                                var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
+            while (wordW > 0 && iterations < 4000) {
+                var curText = theWord.text();
 
-                                var pastedText = $("#"+that.config.pasteModal).val();
+                theWord.text(curText.substring(0, curText.length - 1));
+                iterations++
+            }
 
-                                var pastedTextLinesArray = pastedText.split(/\r\n|\r|\n/g);
+            return iterations == 0 ? 0 : iterations - 1
+        },
 
-                                $.each(pastedTextLinesArray, function(index, iterPastedLine) {
-                                    if (index > 0) that.newLine();
+        detectCursorPosition: function() {
+            var theWord = this.tempText[this.currentLine].clone(),
+                cursorY = this.tempText[this.currentLine].y(),
+                cursorText = theWord.text(),
+                cursorLineHeight = this.focusRectH - 10;
 
-                                    var newTextString = ((index > 0)?'':textBeforeCursor) + iterPastedLine + ((index == pastedTextLinesArray.length-1)?textAfterCursor:'');
-                                    that.tempText[that.currentLine].setText(newTextString);
+            theWord.text(cursorText.substring(0, this.currentWordCursorPos));
+            var cursorX = this.tempText[this.currentLine].getX() + theWord.getWidth();
 
-                                    that.currentWordCursorPos+=iterPastedLine.length;
-                                    that.currentWordLetters+=iterPastedLine.length;
+            this.cursorLine.points([cursorX, cursorY, cursorX, cursorY + cursorLineHeight])
+        },
 
-                                    that.detectCursorPosition();
+        // Check if user's click was inside this text
+        checkClick: function() {
+            var stage = this.getStage();
 
-                                    $.each(that.tempText, function(index2, iterTempText) {
-                                        if (iterTempText.getWidth() > that.maxWidth) that.maxWidth = iterTempText.getWidth();
-                                    });
+            if (!stage) throw this.noStageError;
+            else {
+                var pos = stage.getPointerPosition();
 
-                                    if (that.maxWidth < that.tempText[that.currentLine].getWidth()) {
-                                        that.maxWidth = that.tempText[that.currentLine].getWidth();
-                                    }
+                return (pos.x > this.getX()) && (pos.x < this.getX() + this.focusRect.getWidth()) &&
+                       (pos.y > this.getY()) && (pos.y < this.getY() + this.focusRect.getHeight())
+            }
+        },
 
-                                    if (that.tempText[that.currentLine].getWidth() >= that.maxWidth) {
-                                        that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
-                                    }
+        unfocus: function() {
+            var finalText = '',
+                body = $("body"),
+                layer = this.getLayer();
 
-                                    that.focusRectW = that.focusRect.getWidth();
-                                    layer.draw();
-                                })
-                            }, 1);
-                        }
+            if (!layer) throw this.noLayerError;
+            else {
+                clearInterval(this.cursorInterval);
 
-                        break;
-                    // 37: Left Arrow
-                    // 39: Right Arrow
-                    case 37: case 39:
-                    if (code==37 && that.currentWordCursorPos == 0) {
+                $.each(this.tempText, function(index, iterTextLine) {
+                    finalText += iterTextLine.getText()+"\n"
+                });
 
-                        if (that.currentLine == 0) return false;
+                this.setText(finalText);
 
-                        that.currentLine--;
+                this.focusRect.destroy();
+                this.cursorLine.destroy();
 
-                        var theWord = that.tempText[that.currentLine].clone();
-                        var prevLineLetterCount = that.countLetters(theWord);
+                $.each(this.tempText, function(index, iterTextLine) {
+                    iterTextLine.destroy()
+                });
 
-                        that.currentWordCursorPos = prevLineLetterCount;
-                        that.currentWordLetters = prevLineLetterCount;
+                this.show();
 
-                        that.detectCursorPosition();
+                layer.draw();
 
-                        layer.draw();
+                body.off("keydown");
+                body.off("keypress");
+                body.off("keyup")
+            }
+        },
 
-                        return false;
-                    }
-                    if (code==39 && that.currentWordCursorPos == that.currentWordLetters) {
+        initKeyHandlers: function() {
+            var that = this,
+                body = $("body");
 
-                        if (that.currentLine==that.totalLines-1) return false;
+            //key handlers
+            body.on("keydown", function(e) {
+                var code = e.charCode || e.keyCode,
+                    layer = that.getLayer();
 
-                        that.currentLine++;
-
-                        var theWord = that.tempText[that.currentLine].clone();
-                        var nextLineLetterCount = that.countLetters(theWord);
-
-                        that.currentWordCursorPos = 0;
-                        that.currentWordLetters = nextLineLetterCount;
-
-                        that.detectCursorPosition();
-
-                        layer.draw();
-
-                        return false;
-                    }
-
-                    code==37?that.currentWordCursorPos--:that.currentWordCursorPos++;
-                    //code==37?console.log("left"):console.log("right");
-
-                    that.detectCursorPosition();
-
+                if (!layer) throw that.noLayerError;
+                else {
+                    // Keep cursor on when moving/writing
+                    that.cursorLine.show();
                     layer.draw();
 
-                    return false;
-                    break;
-                    // 38: Up Arrow
-                    // 40: Down Arrow
-                    case 38: case 40:
-                    // code==38?console.log("up"):console.log("down");
+                    clearInterval(that.cursorInterval);
+                    that.cursorInterval = setInterval(function() {
+                        if (that.cursorLine.isVisible()) that.cursorLine.hide();
+                        else that.cursorLine.show();
 
-                    if (code==38 && that.currentLine==0) return false;
-                    if (code==40 && that.currentLine==that.totalLines-1) return false;
+                        layer.draw()
+                    }, 500);
 
-                    code==38?that.currentLine--:that.currentLine++;
-
-                    var pos = {
-                        x: that.cursorLine.getPoints()[0].x,
-                        y: that.tempText[that.currentLine].getY(),
-                    }
-
-                    // TODO this must be a copy-paste from somewhere...
-                    var iterations = 0
-                    var theWord = that.tempText[that.currentLine].clone();
-                    var wordW=theWord.getWidth();
-                    var cursorX = pos.x+5;
-
-                    while (wordW>0 && iterations < 4000) {
-                        wordW = theWord.getWidth();
-                        curText = theWord.getText();
-                        theWord.setText(curText.substring(0,curText.length-1));
-                        iterations++;
-                    }
-
-                    that.currentWordLetters = iterations==0?0:iterations-1;
-
-                    iterations = 0
-                    theWord = that.tempText[that.currentLine].clone();
-                    wordW=theWord.getWidth();
-
-                    var prevWordW;
-                    var toLeft=true;
-
-                    while (wordW>0) {
-                        prevWordW = wordW;
-                        wordW = theWord.getWidth();
-
-                        if (pos.x > that.tempText[that.currentLine].getX() + wordW) {
-                            cursorX = that.tempText[that.currentLine].getX() + wordW;
-
-                            if ( (pos.x - (that.tempText[that.currentLine].getX() + wordW)) > (prevWordW-wordW)/2 ) toLeft=false;
-
-                            that.currentWordCursorPos = that.currentWordLetters - iterations
+                    switch (code) {
+                        // 16: Shift
+                        case 16:
+                            if (!that.shiftDown) that.shiftDown = true;
                             break;
-                        }
 
-                        curText = theWord.getText();
-                        theWord.setText(curText.substring(0,curText.length-1));
+                        // 17: Ctrl
+                        case 17:
+                            if (!that.ctrlDown) that.ctrlDown = true;
+                            break;
 
-                        iterations++;
-                    }
-                    // ****
-
-                    if (!toLeft && that.currentWordCursorPos<that.currentWordLetters) that.currentWordCursorPos++;
-
-                    if (that.currentWordCursorPos > that.currentWordLetters) that.currentWordCursorPos = that.currentWordLetters;
-
-                    that.detectCursorPosition();
-
-                    layer.draw();
-
-                    return false;
-                    break;
-                    // 35: End
-                    // 36: Home
-                    case 35: case 36:
-                    // code==35?console.log("end"):console.log("home");
-
-                    if (code==36) that.currentWordCursorPos = 0;
-                    if (code==35) that.currentWordCursorPos = that.currentWordLetters;
-
-                    that.detectCursorPosition();
-
-                    layer.draw();
-                    return false;
-                    break;
-                    // 8: Backspace
-                    // 46: Delete
-                    case 8: case 46:
-                    // if (code==8) console.log("backspace");
-
-                    that.removeChar(code);
-
-                    return false;
-
-                    break;
-                    // 13: Enter
-                    case 13:
-
-                        if (that.unfocusOnEnter) that.unfocus(e);
-                        else {
+                        // 86: 'v' -> Paste
+                        case 86:
                             if (that.ctrlDown) {
-                                that.unfocus(e);
-                                that.ctrlDown=false;
-                                focusedText = undefined;
+                                var pasteModal = $("#" + that.config.pasteModal);
+
+                                pasteModal.val('');
+                                pasteModal.focus();
+
+                                setTimeout(function() {
+                                    var currentTextString = that.tempText[that.currentLine].text(),
+                                        textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos),
+                                        textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length),
+                                        pastedText = $("#" + that.config.pasteModal).val(),
+                                        pastedTextLinesArray = pastedText.split(/\r\n|\r|\n/g);
+
+                                    $.each(pastedTextLinesArray, function(index, iterPastedLine) {
+                                        if (index > 0) that.newLine();
+
+                                        var newTextString = index > 0 ?
+                                                '' : textBeforeCursor + iterPastedLine + (index == pastedTextLinesArray.length - 1 ? textAfterCursor : '');
+
+                                        that.tempText[that.currentLine].text(newTextString);
+
+                                        that.currentWordCursorPos += iterPastedLine.length;
+                                        that.currentWordLetters += iterPastedLine.length;
+
+                                        that.detectCursorPosition();
+
+                                        $.each(that.tempText, function(index2, iterTempText) {
+                                            if (iterTempText.width() > that.maxWidth) that.maxWidth = iterTempText.width()
+                                        });
+
+                                        if (that.maxWidth < that.tempText[that.currentLine].width())
+                                            that.maxWidth = that.tempText[that.currentLine].width();
+
+                                        if (that.tempText[that.currentLine].width() >= that.maxWidth)
+                                            that.focusRect.width(
+                                                80 < that.tempText[that.currentLine].width() ?
+                                                    that.tempText[that.currentLine].width() + 20 : 100
+                                            );
+
+                                        that.focusRectW = that.focusRect.width();
+
+                                        layer.draw()
+                                    })
+                                }, 1)
                             }
+
+                            break;
+
+                        // 37: Left Arrow
+                        case 37:
+                            if (that.currentWordCursorPos !== 0)
+                                that.currentWordCursorPos--;
                             else {
-                                that.newLine();
+                                if (that.currentLine !== 0) {
+                                    that.currentLine--;
+
+                                    var prevLineLetterCount = that.tempText[that.currentLine].text().length;
+
+                                    that.currentWordCursorPos = prevLineLetterCount;
+                                    that.currentWordLetters = prevLineLetterCount;
+                                }
                             }
-                        }
 
-                        return false;
+                            that.detectCursorPosition();
 
-                        break;
+                            layer.draw();
+
+                            break;
+
+                        // 39: Right Arrow
+                        case 39:
+                            if (that.currentWordCursorPos != that.currentWordLetters)
+                                that.currentWordCursorPos++;
+                            else {
+                                if (that.currentLine !== that.totalLines - 1) {
+                                    that.currentLine++;
+
+                                    var nextLineLetterCount = that.tempText[that.currentLine].text().length;
+
+                                    that.currentWordCursorPos = 0;
+                                    that.currentWordLetters = nextLineLetterCount;
+                                }
+                            }
+
+                            that.detectCursorPosition();
+
+                            layer.draw();
+
+                            break;
+
+                        // 38: Up Arrow
+                        // 40: Down Arrow
+                        case 38: case 40:
+                            if (code==38 && that.currentLine==0) return false;
+                            if (code==40 && that.currentLine==that.totalLines-1) return false;
+
+                            code == 38 ? that.currentLine-- : that.currentLine++;
+
+                            var pos = {
+                                x: that.cursorLine.points()[0].x,
+                                y: that.tempText[that.currentLine].y()
+                            };
+
+                            // TODO this must be a copy-paste from somewhere...
+                            var prevWordW,
+                                curText,
+                                iterations = 0,
+                                theWord = that.tempText[that.currentLine].clone(),
+                                wordW = theWord.width(),
+                                cursorX = pos.x + 5,
+                                toLeft = true;
+
+                            while (wordW>0 && iterations < 4000) {
+                                wordW = theWord.width();
+                                curText = theWord.text();
+                                theWord.text(curText.substring(0, curText.length - 1));
+                                iterations++
+                            }
+
+                            that.currentWordLetters = iterations == 0 ? 0 : iterations - 1;
+
+                            iterations = 0;
+                            wordW = theWord.width();
+
+                            while (wordW>0) {
+                                prevWordW = wordW;
+                                wordW = theWord.width();
+
+                                if (pos.x > that.tempText[that.currentLine].x() + wordW) {
+                                    cursorX = that.tempText[that.currentLine].x() + wordW;
+
+                                    if ((pos.x - (that.tempText[that.currentLine].x() + wordW)) >
+                                        (prevWordW - wordW ) / 2)
+                                            toLeft = false;
+
+                                    that.currentWordCursorPos = that.currentWordLetters - iterations;
+
+                                    break
+                                }
+
+                                curText = theWord.text();
+                                theWord.text(curText.substring(0, curText.length - 1));
+
+                                iterations++
+                            }
+                            // ****
+
+                            if (!toLeft && that.currentWordCursorPos<that.currentWordLetters) that.currentWordCursorPos++;
+
+                            if (that.currentWordCursorPos > that.currentWordLetters) that.currentWordCursorPos = that.currentWordLetters;
+
+                            that.detectCursorPosition();
+
+                            layer.draw();
+
+                            break;
+
+                        // 35: End
+                        // 36: Home
+                        case 35: case 36:
+                            if (code==36) that.currentWordCursorPos = 0;
+                            if (code==35) that.currentWordCursorPos = that.currentWordLetters;
+
+                            that.detectCursorPosition();
+
+                            layer.draw();
+
+                            break;
+
+                        // 8: Backspace
+                        // 46: Delete
+                        case 8: case 46:
+                            that.removeChar(code);
+
+                            break;
+
+                        // 13: Enter
+                        case 13:
+                            if (that.unfocusOnEnter) that.unfocus(e);
+                            else {
+                                if (that.ctrlDown) {
+                                    that.unfocus(e);
+
+                                    that.ctrlDown = false;
+
+                                    focusedText = undefined
+
+                                } else that.newLine()
+                            }
+
+                            break;
+                    }
                 }
-
-                return true;
             });
 
-            $("body").on("keyup", function(e) {
+            body.on("keyup", function(e) {
                 var code = e.charCode || e.keyCode;
 
                 switch (code) {
                     case 16:
                         that.shiftDown = false;
                         break;
+
                     case 17:
                         that.ctrlDown = false;
                         break;
+
                     default: break;
                 }
             });
 
             // General text input
-            $("body").on("keypress", function(e) {
+            body.on("keypress", function(e) {
                 that.addChar(e);
 
                 return false
@@ -566,43 +554,40 @@ function init(KineticModule){
                 layer = this.getLayer();
 
             if (!layer) throw this.noLayerError;
+            else {
+                that.focusRect.height(that.focusRect.height() + that.lineHeightPx);
 
-            that.focusRect.setHeight(that.focusRect.getHeight() + that.lineHeightPx);
+                that.currentLine++;
+                that.totalLines++;
 
-            that.currentLine++;
-            that.totalLines++;
+                var newLineIndex = that.totalLines - 1;
+                that.tempText[newLineIndex] = new Kinetic.Text(that.config);
 
-            var newLineIndex = that.totalLines - 1;
-            that.tempText[newLineIndex] = new Kinetic.Text(that.config);
+                layer.add(that.tempText[newLineIndex]);
 
-            layer.add(that.tempText[newLineIndex]);
+                that.tempText[newLineIndex].x(that.x());
+                that.tempText[newLineIndex].y(that.y() + newLineIndex * that.lineHeightPx);
 
-            that.tempText[newLineIndex].setX(that.getX());
-            that.tempText[newLineIndex].setY(that.getY() + newLineIndex*that.lineHeightPx);
-
-            if (that.currentLine < that.totalLines-1) {
-                for (i = that.totalLines ; i > that.currentLine+1 ; i--) {
-                    console.log("line: "+i);
-
-                    that.tempText[i-1].setText(that.tempText[i-2].getText());
+                if (that.currentLine < that.totalLines - 1) {
+                    for (var i = that.totalLines ; i > that.currentLine+1 ; i--) {
+                        that.tempText[i - 1].text(that.tempText[i - 2].text())
+                    }
                 }
+
+                var currentTextString = that.tempText[that.currentLine - 1].text(),
+                    textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos),
+                    textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
+
+                that.tempText[that.currentLine - 1].text(textBeforeCursor);
+                that.tempText[that.currentLine].text(textAfterCursor);
+
+                that.currentWordCursorPos = 0;
+                that.currentWordLetters = textAfterCursor.length;
+
+                that.detectCursorPosition();
+
+                layer.draw()
             }
-
-            // ---
-            var currentTextString = that.tempText[that.currentLine-1].getText();
-            var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
-            var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
-
-            that.tempText[that.currentLine-1].setText(textBeforeCursor);
-            that.tempText[that.currentLine].setText(textAfterCursor);
-            // ---
-
-            that.currentWordCursorPos = 0;
-            that.currentWordLetters = textAfterCursor.length;
-
-            that.detectCursorPosition();
-
-            layer.draw();
         },
 
         addChar: function(e) {
@@ -610,43 +595,43 @@ function init(KineticModule){
                 layer = this.getLayer();
 
             if (!layer) throw this.noLayerError;
+            else {
+                var code = e.charCode || e.keyCode;
 
-            var code = e.charCode || e.keyCode;
+                // Ignore all keys handled in keydown.
+                if (code == 8 || code == 13 || code == 37 || code == 38 || code == 39 || code == 40) return;
 
-            // console.log("keypress: "+code);
+                var theChar = typeof e === 'string' ? e : String.fromCharCode(code);
 
-            // Ignore all keys handled in keydown above.
-            if (code == 8 || code == 13 || code == 37 || code == 38 || code == 39 || code == 40) return;
+                var currentTextString = that.tempText[that.currentLine].text();
+                var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
+                var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
 
-            var theChar = typeof e === 'string' ? e : String.fromCharCode(code);
+                var newTextString = textBeforeCursor + theChar + textAfterCursor;
+                that.tempText[that.currentLine].text(newTextString);
 
-            var currentTextString = that.tempText[that.currentLine].getText();
-            var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
-            var textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length);
+                that.currentWordCursorPos++;
+                that.currentWordLetters++;
 
-            var newTextString = textBeforeCursor + theChar + textAfterCursor;
-            that.tempText[that.currentLine].setText(newTextString);
+                if ( typeof e !== 'string' ) that.detectCursorPosition();
 
-            that.currentWordCursorPos++;
-            that.currentWordLetters++;
+                $.each(that.tempText, function(index, iterTempText) {
+                    if (iterTempText.width() > that.maxWidth) that.maxWidth = iterTempText.width()
+                });
 
-            if ( typeof e !== 'string' ) that.detectCursorPosition();
+                if (that.maxWidth < that.tempText[that.currentLine].width())
+                    that.maxWidth = that.tempText[that.currentLine].width();
 
-            $.each(that.tempText, function(index, iterTempText) {
-                if (iterTempText.getWidth() > that.maxWidth) that.maxWidth = iterTempText.getWidth();
-            });
+                if (that.tempText[that.currentLine].width() >= that.maxWidth)
+                    that.focusRect.width(
+                        80 < that.tempText[that.currentLine].width() ?
+                            that.tempText[that.currentLine].width() + 20 : 100
+                    );
 
-            if (that.maxWidth < that.tempText[that.currentLine].getWidth()) {
-                that.maxWidth = that.tempText[that.currentLine].getWidth();
+                that.focusRectW = that.focusRect.width();
+
+                layer.draw()
             }
-
-            if (that.tempText[that.currentLine].getWidth() >= that.maxWidth) {
-                that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
-            }
-
-            that.focusRectW = that.focusRect.getWidth();
-
-            layer.draw()
         },
 
         removeChar: function(code) {
@@ -657,99 +642,118 @@ function init(KineticModule){
             else if (code === "delete") code = 46;
             else if ( typeof code !== "number")
                 throw new Error('The first argument passed to Kinetic.EditableText.removeChar() must be ' +
-                    '"backspace" (string), "delete" (string), or a character code (integer)');
+                                '"backspace" (string), "delete" (string), or a character code (integer)');
 
             if (!layer) throw this.noLayerError;
+            else {
+                var i,
+                    oldWidth = that.tempText[that.currentLine].width(),
+                    currentTextString = that.tempText[that.currentLine].text(),
+                    deletedText = that.tempText[that.currentLine].text(),
+                    deletedTextStart = deletedText.substring(0, code === 8 ? that.currentWordCursorPos - 1 : that.currentWordCursorPos),
+                    deletedTextEnd = deletedText.substring(code === 8 ? that.currentWordCursorPos : that.currentWordCursorPos + 1, deletedText.length);
 
-            // Backspace
-            if (code==8 && that.currentWordCursorPos == 0) {
+                // Backspace
+                if (code==8 && that.currentWordCursorPos == 0) {
+                    if (that.currentLine > 0) {
+                        var prevLineLettersCount = that.tempText[that.currentLine - 1].text().length,
+                            prevLineString = (that.tempText[that.currentLine - 1]) ?
+                                that.tempText[that.currentLine - 1].text() : "";
 
-                if (that.currentLine > 0) {
-                    var currentTextString = that.tempText[that.currentLine].getText();
-                    var prevLineString = (that.tempText[that.currentLine-1])?that.tempText[that.currentLine-1].getText():"";
+                        that.tempText[that.currentLine - 1].text(prevLineString + currentTextString);
 
-                    var prevLineLettersCount = that.countLetters(that.tempText[that.currentLine-1].clone());
+                        that.currentWordLetters += prevLineLettersCount;
 
-                    that.tempText[that.currentLine-1].setText(prevLineString + currentTextString);
+                        that.currentWordCursorPos = prevLineLettersCount;
 
-                    that.currentWordLetters += prevLineLettersCount;
-                    that.currentLine--;
-                    that.currentWordCursorPos = prevLineLettersCount;
+                        that.currentLine--;
 
-                    for (i = that.currentLine+1 ; i < that.totalLines-1 ; i++) {
-                        that.tempText[i].setText(that.tempText[i+1].getText());
+                        for (i = that.currentLine + 1 ; i < that.totalLines - 1; i++)
+                            that.tempText[i].text(that.tempText[i + 1].text())
+
+                        that.tempText[i].text("");
+
+                        that.focusRect.height(that.focusRect.height() - that.lineHeightPx);
+
+                        that.totalLines--;
+
+                        if (oldWidth >= that.maxWidth) {
+                            that.focusRect.width(
+                                80 < that.tempText[that.currentLine].width() ?
+                                    that.tempText[that.currentLine].width() + 20 : 100
+                            );
+
+                            that.maxWidth = that.tempText[that.currentLine].width()
+                        }
+
+                        that.detectCursorPosition();
+
+                        layer.draw();
+
+                        return
                     }
-
-                    that.tempText[i].setText("");
-                    that.focusRect.setHeight(that.focusRect.getHeight() - that.lineHeightPx);
-                    that.totalLines--;
-
-                    var oldWidth = that.tempText[that.currentLine].getWidth();
-                    if (oldWidth >= that.maxWidth) {
-                        that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
-                        that.maxWidth = that.tempText[that.currentLine].getWidth();
-                    }
-
-                    that.detectCursorPosition();
-                    layer.draw();
                 }
-            }
-            // Delete
-            if (code==46 && that.currentWordCursorPos == that.currentWordLetters) {
+                // Delete
+                if (code==46 && that.currentWordCursorPos == that.currentWordLetters) {
+                    if (that.currentLine < that.totalLines-1) {
+                        var nextLineString = (that.tempText[that.currentLine + 1]) ?
+                                that.tempText[ that.currentLine + 1].text() : "";
 
-                if (that.currentLine < that.totalLines-1) {
-                    var currentTextString = that.tempText[that.currentLine].getText();
-                    var nextLineString = (that.tempText[that.currentLine+1])?that.tempText[that.currentLine+1].getText():"";
+                        that.tempText[that.currentLine].text(currentTextString + nextLineString);
 
-                    that.tempText[that.currentLine].setText(currentTextString + nextLineString);
+                        that.currentWordLetters += that.tempText[that.currentLine + 1].text().length;
 
-                    var nextLineLettersCount = that.countLetters(that.tempText[that.currentLine+1].clone());
+                        for (i = that.currentLine + 1; i < that.totalLines - 1; i++)
+                            that.tempText[i].text(that.tempText[i + 1].text())
 
-                    that.currentWordLetters += nextLineLettersCount;
+                        that.tempText[i].text("");
 
-                    for (i = that.currentLine+1 ; i < that.totalLines-1 ; i++) {
-                        that.tempText[i].setText(that.tempText[i+1].getText());
+                        that.focusRect.height(that.focusRect.height() - that.lineHeightPx);
+
+                        that.totalLines--;
+
+                        if (oldWidth >= that.maxWidth) {
+                            that.focusRect.width(
+                                80 < that.tempText[that.currentLine].width() ?
+                                    that.tempText[that.currentLine].width() + 20 : 100
+                            );
+
+                            that.maxWidth = that.tempText[that.currentLine].width()
+                        }
+
+                        layer.draw();
+
+                        return
                     }
-
-                    that.tempText[i].setText("");
-                    that.focusRect.setHeight(that.focusRect.getHeight() - that.lineHeightPx);
-                    that.totalLines--;
-
-                    var oldWidth = that.tempText[that.currentLine].getWidth();
-                    if (oldWidth >= that.maxWidth) {
-                        that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
-                        that.maxWidth = that.tempText[that.currentLine].getWidth();
-                    }
-
-                    layer.draw();
                 }
+
+                deletedText = deletedTextStart+deletedTextEnd;
+
+                if (code === 8 && that.currentWordCursorPos > 0) that.currentWordCursorPos--;
+
+                that.currentWordLetters--;
+
+                that.tempText[that.currentLine].text(deletedText);
+
+                that.detectCursorPosition();
+
+                $.each(that.tempText, function(index, iterTempText) {
+                    if (iterTempText.width() > that.maxWidth) that.maxWidth = iterTempText.width()
+                });
+
+                if (oldWidth >= that.maxWidth) {
+                    that.focusRect.width(
+                        80 < that.tempText[that.currentLine].width() ?
+                            that.tempText[that.currentLine].width() + 20 : 100
+                    );
+
+                    that.maxWidth = that.tempText[that.currentLine].width()
+                }
+
+                that.focusRectW = that.focusRect.width();
+
+                layer.draw()
             }
-
-            var deletedText = that.tempText[that.currentLine].getText();
-            var deletedTextStart = deletedText.substring(0,code === 8?that.currentWordCursorPos-1:that.currentWordCursorPos);
-            var deletedTextEnd = deletedText.substring(code === 8?that.currentWordCursorPos:that.currentWordCursorPos+1,deletedText.length);
-            deletedText = deletedTextStart+deletedTextEnd;
-
-            if (code === 8 && that.currentWordCursorPos > 0) that.currentWordCursorPos--;
-            that.currentWordLetters--;
-
-            var oldWidth = that.tempText[that.currentLine].getWidth();
-            that.tempText[that.currentLine].setText(deletedText);
-
-            that.detectCursorPosition();
-
-            $.each(that.tempText, function(index, iterTempText) {
-                if (iterTempText.getWidth() > that.maxWidth) that.maxWidth = iterTempText.getWidth();
-            });
-
-            if (oldWidth >= that.maxWidth) {
-                that.focusRect.setWidth(80<that.tempText[that.currentLine].getWidth()?that.tempText[that.currentLine].getWidth()+20:100);
-                that.maxWidth = that.tempText[that.currentLine].getWidth();
-            }
-
-            that.focusRectW = that.focusRect.getWidth();
-
-            layer.draw();
         },
 
         clear: function() {
@@ -762,7 +766,7 @@ function init(KineticModule){
                         this.tempText[i].text("");
                     else {
                         this.tempText[i].destroy();
-                        this.tempText.length = i;
+                        this.tempText.length = i
                     }
                 }
 
@@ -817,16 +821,12 @@ function init(KineticModule){
 }
 
 // Define an AMD module
-if (typeof define === 'function' && typeof define.amd === 'object') {
+if (typeof define === 'function' && typeof define.amd === 'object')
     define({ init: init });
-}
 
 // Define a CommonJS module
-else if (typeof module !== 'undefined' && module.exports) {
+else if (typeof module !== 'undefined' && module.exports)
     module.kineticEditableText = { init: init };
-}
 
 // Define Kinetic.EditableText globally
-else {
-    init();
-}
+else init();
