@@ -48,14 +48,14 @@ function init(KineticModule){
         this.maxWidth = 0;
         this.totalLines = 1;
 
-        this.stage = config.stage;
-
         this.currentWordLetters = 0;
         this.currentWordCursorPos = 0;
 
         this.unfocusedOnce=false;
 
         this.noLayerError = new Error('The Kinetic.EditableText shape must be added to a layer!');
+
+        this.noStageError = new Error('The Kinetic.EditableText shape must be added to a stage!');
 
         // call super constructor
         Kinetic.Text.call(this, config);
@@ -78,9 +78,11 @@ function init(KineticModule){
          */
         focus: function() {
             var that = this,
-                layer = this.getLayer();
+                layer = this.getLayer(),
+                stage = this.getStage();
 
             if (!layer) throw this.noLayerError;
+            if (!stage) throw this.noStageError;
 
             this.initKeyHandlers();
 
@@ -108,7 +110,7 @@ function init(KineticModule){
                 layer.draw();
             }, 500);
 
-            if (that.stage.getPointerPosition())
+            if (stage.getPointerPosition())
                 this.findCursorPosFromClick();
 
             $.each(this.tempText, function(i, iterTempText) {
@@ -133,10 +135,13 @@ function init(KineticModule){
          */
         findCursorPosFromClick: function() {
             var that = this,
-                pos = that.stage.getPointerPosition(),
+                stage = this.getStage(),
                 layer = this.getLayer();
 
             if (!layer) throw this.noLayerError;
+            if (!stage) throw this.noStageError;
+
+            var pos = stage.getPointerPosition();
 
             $.each(this.tempText, function(index, iterTempText) {
                 if ((pos.y < iterTempText.getY() + that.lineHeightPx) &&
@@ -242,7 +247,11 @@ function init(KineticModule){
 
         // Check if user's click was inside this text
         checkClick: function() {
-            var pos = this.stage.getPointerPosition();
+            var stage = this.getStage();
+
+            if (!stage) throw this.noStageError;
+
+            var pos = stage.getPointerPosition();
 
             return (
                 (pos.x > this.getX()) && (pos.x < this.getX() + this.focusRect.getWidth()) &&
