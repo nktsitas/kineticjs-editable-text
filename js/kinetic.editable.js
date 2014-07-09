@@ -36,9 +36,12 @@ function init(KineticModule){
         this.lineHeightPx = config.lineHeight * textHeight;
 
         // focus rectangle - 'TextBox'
-        this.focusRectW = (100<config.fontSize*3)?config.fontSize*4:100;
-        this.focusRectH = textHeight+10;
+        this.initialRectW = (100<config.fontSize*3)?config.fontSize*4:100;
         this.initialRectH = textHeight+10;
+
+        this.focusRectW = this.initialRectW;
+        this.focusRectH = this.initialRectH;
+
         this.focusRectColor = config.focusRectColor;
 
         this.tempText = Array();
@@ -749,6 +752,42 @@ function init(KineticModule){
             layer.draw();
         },
 
+        clear: function() {
+            var layer = this.getLayer();
+
+            if (!layer) throw this.noLayerError;
+            else {
+                for (var i = this.totalLines - 1; i > -1; i--) {
+                    if (i === 0)
+                        this.tempText[i].text("");
+                    else {
+                        this.tempText[i].destroy();
+                        this.tempText.length = i;
+                    }
+                }
+
+                this.focusRectW = this.initialRectW;
+                this.focusRectH = this.initialRectH;
+
+                this.focusRect.size({
+                    width: this.focusRectW,
+                    height: this.focusRectH
+                });
+
+                this.currentLine = 0;
+                this.totalLines = 1;
+
+                this.maxWidth = 0;
+
+                this.currentWordLetters = 0;
+                this.currentWordCursorPos = 0;
+
+                this.detectCursorPosition();
+
+                layer.draw()
+            }
+        },
+
         text: function(string) {
             var i;
 
@@ -764,20 +803,12 @@ function init(KineticModule){
                 return text
             } else {
                 if (typeof string === "string") {
-                    var lastLine = this.tempText.length - 1;
-
-                    this.currentLine = lastLine;
-                    this.currentWordCursorPos = this.tempText[lastLine].text().length;
-
-                    while (this.currentLine !== 0 || this.currentWordCursorPos !== 0) {
-                        this.removeChar("backspace");
-                    }
+                    this.clear();
 
                     for (i = 0; i < string.length; i++) {
-                        this.addChar(string[i]);
+                        this.addChar(string[i])
                     }
-
-                } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string");
+                } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string")
             }
         }
     };
