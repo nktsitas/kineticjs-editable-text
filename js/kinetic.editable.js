@@ -286,8 +286,6 @@ function init(KineticModule){
 
             layer.draw();
 
-            if (this.maxWidth == 0) this.destroy();
-
             $("body").off("keydown");
             $("body").off("keypress");
             $("body").off("keyup");
