@@ -32,10 +32,6 @@ function init(KineticModule){
         config.unfocusOnEnter = config.unfocusOnEnter || false;
         config.pasteModal = config.pasteModal || null;
 
-        if (config.focusLayer==undefined) {
-            throw new Error("Please Provide a Focus Layer (config.focusLayer).");
-        }
-
         var textHeight = config.fontSize;
         this.lineHeightPx = config.lineHeight * textHeight;
 
@@ -44,7 +40,6 @@ function init(KineticModule){
         this.focusRectH = textHeight+10;
         this.initialRectH = textHeight+10;
         this.focusRectColor = config.focusRectColor;
-        this.focusLayer = config.focusLayer;
 
         this.tempText = Array();
         this.tempText[0] = new Kinetic.Text(config);
@@ -59,6 +54,8 @@ function init(KineticModule){
         this.currentWordCursorPos = 0;
 
         this.unfocusedOnce=false;
+
+        this.noLayerError = new Error('The Kinetic.EditableText shape must be added to a layer!');
 
         // call super constructor
         Kinetic.Text.call(this, config);
@@ -80,6 +77,11 @@ function init(KineticModule){
          * summary:
          */
         focus: function() {
+            var that = this,
+                layer = this.getLayer();
+
+            if (!layer) throw this.noLayerError;
+
             this.initKeyHandlers();
 
             this.hide();
@@ -99,13 +101,11 @@ function init(KineticModule){
                 stroke: 'black'
             });
 
-            var that = this;
-
             this.cursorInterval = setInterval(function() {
                 if (that.cursorLine.isVisible()) that.cursorLine.hide();
                 else that.cursorLine.show();
 
-                that.focusLayer.draw();
+                layer.draw();
             }, 500);
 
             if (that.stage.getPointerPosition())
@@ -117,13 +117,13 @@ function init(KineticModule){
                     y: that.y() + i * that.lineHeightPx
                 });
 
-                that.focusLayer.add(iterTempText)
+                layer.add(iterTempText)
             });
 
-            this.focusLayer.add(this.focusRect);
-            this.focusLayer.add(this.cursorLine);
+            layer.add(this.focusRect);
+            layer.add(this.cursorLine);
 
-            this.focusLayer.draw()
+            layer.draw()
         },
 
         /*
@@ -133,7 +133,10 @@ function init(KineticModule){
          */
         findCursorPosFromClick: function() {
             var that = this,
-                pos = that.stage.getPointerPosition();
+                pos = that.stage.getPointerPosition(),
+                layer = this.getLayer();
+
+            if (!layer) throw this.noLayerError;
 
             $.each(this.tempText, function(index, iterTempText) {
                 if ((pos.y < iterTempText.getY() + that.lineHeightPx) &&
@@ -191,18 +194,18 @@ function init(KineticModule){
                 }
             });
 
-            that.focusLayer.draw();
+            layer.draw();
 
             // Keep cursor on when moving/writing
             that.cursorLine.show();
-            that.focusLayer.draw();
+            layer.draw();
 
             clearInterval(that.cursorInterval);
             that.cursorInterval = setInterval(function() {
                 if (that.cursorLine.isVisible()) that.cursorLine.hide();
                 else that.cursorLine.show();
 
-                that.focusLayer.draw();
+                layer.draw();
             }, 500);
             // -----
         },
@@ -248,9 +251,12 @@ function init(KineticModule){
         },
 
         unfocus: function(e) {
-            clearInterval(this.cursorInterval);
+            var finalText = '',
+                layer = this.getLayer();
 
-            var finalText = '';
+            if (!layer) throw this.noLayerError;
+
+            clearInterval(this.cursorInterval);
 
             $.each(this.tempText, function(index, iterTextLine) {
                 finalText += iterTextLine.getText()+"\n";
@@ -267,10 +273,9 @@ function init(KineticModule){
                 iterTextLine.destroy();
             });
 
-            //this.focusLayer.removeChildren();
-            this.focusLayer.draw();
-
             this.show();
+
+            layer.draw();
 
             if (this.maxWidth == 0) this.destroy();
 
@@ -284,7 +289,10 @@ function init(KineticModule){
         },
 
         initKeyHandlers: function() {
-            var that = this;
+            var that = this,
+                layer = this.getLayer();
+
+            if (!layer) throw this.noLayerError;
 
             //key handlers
             $("body").on("keydown", function(e) {
@@ -292,14 +300,14 @@ function init(KineticModule){
 
                 // Keep cursor on when moving/writing
                 that.cursorLine.show();
-                that.focusLayer.draw();
+                layer.draw();
 
                 clearInterval(that.cursorInterval);
                 that.cursorInterval = setInterval(function() {
                     if (that.cursorLine.isVisible()) that.cursorLine.hide();
                     else that.cursorLine.show();
 
-                    that.focusLayer.draw();
+                    layer.draw();
                 }, 500);
                 // -----
 
@@ -353,7 +361,7 @@ function init(KineticModule){
                                     }
 
                                     that.focusRectW = that.focusRect.getWidth();
-                                    that.focusLayer.draw();
+                                    layer.draw();
                                 })
                             }, 1);
                         }
@@ -376,7 +384,7 @@ function init(KineticModule){
 
                         that.detectCursorPosition();
 
-                        that.focusLayer.draw();
+                        layer.draw();
 
                         return false;
                     }
@@ -394,7 +402,7 @@ function init(KineticModule){
 
                         that.detectCursorPosition();
 
-                        that.focusLayer.draw();
+                        layer.draw();
 
                         return false;
                     }
@@ -404,7 +412,7 @@ function init(KineticModule){
 
                     that.detectCursorPosition();
 
-                    that.focusLayer.draw();
+                    layer.draw();
 
                     return false;
                     break;
@@ -471,7 +479,7 @@ function init(KineticModule){
 
                     that.detectCursorPosition();
 
-                    that.focusLayer.draw();
+                    layer.draw();
 
                     return false;
                     break;
@@ -485,7 +493,7 @@ function init(KineticModule){
 
                     that.detectCursorPosition();
 
-                    that.focusLayer.draw();
+                    layer.draw();
                     return false;
                     break;
                     // 8: Backspace
@@ -544,7 +552,10 @@ function init(KineticModule){
         },
 
         newLine: function() {
-            var that = this;
+            var that = this,
+                layer = this.getLayer();
+
+            if (!layer) throw this.noLayerError;
 
             that.focusRect.setHeight(that.focusRect.getHeight() + that.lineHeightPx);
 
@@ -554,7 +565,7 @@ function init(KineticModule){
             var newLineIndex = that.totalLines - 1;
             that.tempText[newLineIndex] = new Kinetic.Text(that.config);
 
-            that.focusLayer.add(that.tempText[newLineIndex]);
+            layer.add(that.tempText[newLineIndex]);
 
             that.tempText[newLineIndex].setX(that.getX());
             that.tempText[newLineIndex].setY(that.getY() + newLineIndex*that.lineHeightPx);
@@ -581,11 +592,14 @@ function init(KineticModule){
 
             that.detectCursorPosition();
 
-            that.focusLayer.draw();
+            layer.draw();
         },
 
         addChar: function(e) {
-            var that = this;
+            var that = this,
+                layer = this.getLayer();
+
+            if (!layer) throw this.noLayerError;
 
             var code = e.charCode || e.keyCode;
 
@@ -622,17 +636,20 @@ function init(KineticModule){
 
             that.focusRectW = that.focusRect.getWidth();
 
-            that.focusLayer.draw()
+            layer.draw()
         },
 
         removeChar: function(code) {
-            var that = this;
+            var that = this,
+                layer = this.getLayer();
 
             if (code === "backspace") code = 8;
             else if (code === "delete") code = 46;
             else if ( typeof code !== "number")
                 throw new Error('The first argument passed to Kinetic.EditableText.removeChar() must be ' +
                     '"backspace" (string), "delete" (string), or a character code (integer)');
+
+            if (!layer) throw this.noLayerError;
 
             // Backspace
             if (code==8 && that.currentWordCursorPos == 0) {
@@ -664,7 +681,7 @@ function init(KineticModule){
                     }
 
                     that.detectCursorPosition();
-                    that.focusLayer.draw();
+                    layer.draw();
                 }
             }
             // Delete
@@ -694,7 +711,7 @@ function init(KineticModule){
                         that.maxWidth = that.tempText[that.currentLine].getWidth();
                     }
 
-                    that.focusLayer.draw();
+                    layer.draw();
                 }
             }
 
@@ -722,7 +739,7 @@ function init(KineticModule){
 
             that.focusRectW = that.focusRect.getWidth();
 
-            that.focusLayer.draw();
+            layer.draw();
         },
 
         text: function(string) {
