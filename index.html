@@ -110,27 +110,7 @@
                         fill: '#000000',
 
                         // pasteModal id to support ctrl+v paste.
-                        pasteModal: "pasteModalArea",
-
-                        // modify hit function to detect clicks
-                        drawHitFunc: function(canvas) {
-                            var context = canvas.getContext();
-
-                            if (this.tempText != undefined) {
-                                var linesCount = this.tempText.length;
-
-                                context.beginPath();
-                                context.rect(0, 0, this.maxWidth + 10, linesCount * focusRectH);
-                                context.closePath();
-                                canvas.fillStroke(this)
-                            }
-                            else {
-                                context.beginPath();
-                                context.rect(0, 0, focusRectW, focusRectH);
-                                context.closePath();
-                                canvas.fillStroke(this)
-                            }
-                        }
+                        pasteModal: "pasteModalArea"
                     });
 
                     layer.add(newText);

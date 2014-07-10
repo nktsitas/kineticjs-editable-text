@@ -56,6 +56,15 @@ function init(KineticModule){
 
         this.noStageError = new Error('The Kinetic.EditableText shape must be added to a stage!');
 
+        this.drawHitFunc = function(canvas) {
+            var context = canvas.getContext();
+
+            context.beginPath();
+            context.rect(0, 0, this.focusRectW, this.focusRectH);
+            context.closePath();
+            canvas.fillStroke(this)
+        };
+
         // call super constructor
         Kinetic.Text.call(this, config);
         this.classType = "EditableText";
