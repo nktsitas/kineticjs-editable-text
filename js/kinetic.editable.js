@@ -223,20 +223,6 @@ function init(KineticModule){
             }
         },
 
-        countLetters: function(theWord) {
-            var iterations = 0,
-                wordW = theWord.width();
-
-            while (wordW > 0 && iterations < 4000) {
-                var curText = theWord.text();
-
-                theWord.text(curText.substring(0, curText.length - 1));
-                iterations++
-            }
-
-            return iterations == 0 ? 0 : iterations - 1
-        },
-
         detectCursorPosition: function() {
             var theWord = this.tempText[this.currentLine].clone(),
                 cursorY = this.tempText[this.currentLine].y(),
