@@ -38,7 +38,7 @@ See index.html for example usage.
 Limitations
 -----------
 
-Tested only with Kinetic v5.1.0
+Tested with Kinetic v5.1.0 and v5.1.1
 
 
 Contributions
