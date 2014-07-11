@@ -284,7 +284,6 @@ function init(KineticModule){
                 layer.draw();
 
                 body.off("keydown");
-                body.off("keypress");
                 body.off("keyup")
             }
         },
@@ -516,6 +515,8 @@ function init(KineticModule){
                             }
 
                             break;
+
+                        default: that.addChar(e);
                     }
                 }
             });
@@ -534,14 +535,7 @@ function init(KineticModule){
 
                     default: break;
                 }
-            });
-
-            // General text input
-            body.on("keypress", function(e) {
-                that.addChar(e);
-
-                return false
-            });
+            })
         },
 
         newLine: function() {
@@ -591,12 +585,14 @@ function init(KineticModule){
 
             if (!layer) throw this.noLayerError;
             else {
-                var code = e.charCode || e.keyCode;
+                var code = e.which || e.charCode || e.keyCode;
 
                 // Ignore all keys handled in keydown.
                 if (code == 8 || code == 13 || code == 37 || code == 38 || code == 39 || code == 40) return;
 
                 var theChar = typeof e === 'string' ? e : String.fromCharCode(code);
+
+                if (!this.shiftDown) theChar = theChar.toLowerCase();
 
                 var currentTextString = that.tempText[that.currentLine].text();
                 var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
