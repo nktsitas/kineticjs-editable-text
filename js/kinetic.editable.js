@@ -297,6 +297,8 @@ function init(KineticModule){
                 var code = e.charCode || e.keyCode,
                     layer = that.getLayer();
 
+                if ( e.which === 8 ) e.preventDefault();
+
                 if (!layer) throw that.noLayerError;
                 else {
                     // Keep cursor on when moving/writing
