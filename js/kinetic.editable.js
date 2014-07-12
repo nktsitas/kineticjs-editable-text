@@ -635,13 +635,10 @@ function init(KineticModule){
             var that = this,
                 layer = this.getLayer();
 
-            if (code === "backspace") code = 8;
-            else if (code === "delete") code = 46;
-            else if ( typeof code !== "number")
+            if (code !== 8 && code !== 46)
                 throw new Error('The first argument passed to Kinetic.EditableText.removeChar() must be ' +
-                                '"backspace" (string), "delete" (string), or a character code (integer)');
-
-            if (!layer) throw this.noLayerError;
+                                'the integer 8 (backspace key code) or 46 (delete key code)');
+            else if (!layer) throw this.noLayerError;
             else {
                 var i,
                     oldWidth = that.tempText[that.currentLine].width(),
