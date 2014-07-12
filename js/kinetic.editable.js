@@ -753,6 +753,8 @@ function init(KineticModule){
             }
         },
 
+        backspaceChar: function() { this.removeChar(8) },
+
         clear: function() {
             var layer = this.getLayer();
 
