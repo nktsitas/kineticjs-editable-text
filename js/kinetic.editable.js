@@ -284,6 +284,7 @@ function init(KineticModule){
                 layer.draw();
 
                 body.off("keydown");
+                body.off("keypress");
                 body.off("keyup")
             }
         },
@@ -517,8 +518,6 @@ function init(KineticModule){
                             }
 
                             break;
-
-                        default: that.addChar(e);
                     }
                 }
             });
@@ -537,7 +536,14 @@ function init(KineticModule){
 
                     default: break;
                 }
-            })
+            });
+
+            // General text input
+            body.on("keypress", function(e) {
+                that.addChar(e);
+
+                return false
+            });
         },
 
         newLine: function() {
@@ -587,14 +593,12 @@ function init(KineticModule){
 
             if (!layer) throw this.noLayerError;
             else {
-                var code = e.which || e.charCode || e.keyCode;
+                var code = e.charCode || e.keyCode;
 
                 // Ignore all keys handled in keydown.
                 if (code == 8 || code == 13 || code == 37 || code == 38 || code == 39 || code == 40) return;
 
                 var theChar = typeof e === 'string' ? e : String.fromCharCode(code);
-
-                if (!this.shiftDown) theChar = theChar.toLowerCase();
 
                 var currentTextString = that.tempText[that.currentLine].text();
                 var textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos);
@@ -631,13 +635,10 @@ function init(KineticModule){
             var that = this,
                 layer = this.getLayer();
 
-            if (code === "backspace") code = 8;
-            else if (code === "delete") code = 46;
-            else if ( typeof code !== "number")
+            if (code !== 8 && code !== 46)
                 throw new Error('The first argument passed to Kinetic.EditableText.removeChar() must be ' +
-                                '"backspace" (string), "delete" (string), or a character code (integer)');
-
-            if (!layer) throw this.noLayerError;
+                                'the integer 8 (backspace key code) or 46 (delete key code)');
+            else if (!layer) throw this.noLayerError;
             else {
                 var i,
                     oldWidth = that.tempText[that.currentLine].width(),
@@ -748,6 +749,10 @@ function init(KineticModule){
                 layer.draw()
             }
         },
+
+        backspaceChar: function() { this.removeChar(8) },
+
+        deleteChar: function() { this.removeChar(46) },
 
         clear: function() {
             var layer = this.getLayer();
