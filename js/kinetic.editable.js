@@ -799,7 +799,9 @@ function init(KineticModule){
                 for (i = 0; i < this.tempText.length; i++){
                     text += this.tempText[i].text();
 
-                    if (typeof this.tempText[i + 1] !== "undefined" && this.tempText[i + 1].text() !== '') text += "\n"
+                    if (typeof this.tempText[i + 1] !== "undefined" &&
+                        this.tempText[i + 1].text() !== '')
+                            text += "\n"
                 }
 
                 return text
@@ -808,8 +810,12 @@ function init(KineticModule){
                     this.clear();
 
                     for (i = 0; i < string.length; i++) {
-                        this.addChar(string[i])
+                        if (/\r\n|\r|\n/g.exec(string[i]))
+                            this.newLine();
+                        else
+                            this.addChar(string[i])
                     }
+
                 } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string")
             }
         }
