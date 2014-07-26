@@ -799,9 +799,8 @@ function init(KineticModule){
                 for (i = 0; i < this.tempText.length; i++){
                     text += this.tempText[i].text();
 
-                    if (typeof this.tempText[i + 1] !== "undefined" &&
-                        this.tempText[i + 1].text() !== '')
-                            text += "\n"
+                    if (typeof this.tempText[i + 1] !== "undefined")
+                        text += "\n"
                 }
 
                 return text
