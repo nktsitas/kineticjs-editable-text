@@ -816,6 +816,8 @@ function init(KineticModule){
                             this.addChar(string[i])
                     }
 
+                    this.detectCursorPosition();
+
                 } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string")
             }
         }
