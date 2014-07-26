@@ -121,6 +121,10 @@
 
                     layer.draw();
 
+                    newText.on('change', function() {
+                        alert('test')
+                    });
+
                     // click listener for created text.
                     newText.on("click", function(evt) {
                         evt.cancelBubble = true;

@@ -585,7 +585,7 @@ function init(KineticModule){
             }
         },
 
-        addChar: function(e) {
+        addChar: function(e, quiet) {
             var that = this,
                 layer = this.getLayer();
 
@@ -625,7 +625,9 @@ function init(KineticModule){
 
                 that.focusRectW = that.focusRect.width();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) that.fire('change')
             }
         },
 
@@ -810,7 +812,7 @@ function init(KineticModule){
                         if (/\r\n|\r|\n/g.exec(string[i]))
                             this.newLine(true);
                         else
-                            this.addChar(string[i])
+                            this.addChar(string[i], true)
                     }
 
                     this.detectCursorPosition();
