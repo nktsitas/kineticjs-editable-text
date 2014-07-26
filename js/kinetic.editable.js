@@ -794,7 +794,7 @@ function init(KineticModule){
             }
         },
 
-        text: function(string) {
+        text: function(string, quiet) {
             var i;
 
             if (arguments.length === 0) {
@@ -823,6 +823,8 @@ function init(KineticModule){
 
                 } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string")
             }
+
+            if (quiet !== true) this.fire('change')
         }
     };
 
