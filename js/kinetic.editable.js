@@ -756,7 +756,7 @@ function init(KineticModule){
 
         deleteChar: function() { this.removeChar(46) },
 
-        clear: function() {
+        clear: function(quiet) {
             var layer = this.getLayer();
 
             if (!layer) throw this.noLayerError;
@@ -788,7 +788,9 @@ function init(KineticModule){
 
                 this.detectCursorPosition();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) this.fire('change')
             }
         },
 
@@ -808,7 +810,7 @@ function init(KineticModule){
                 return text
             } else {
                 if (typeof string === "string") {
-                    this.clear();
+                    this.clear(true);
 
                     for (i = 0; i < string.length; i++) {
                         if (/\r\n|\r|\n/g.exec(string[i]))
