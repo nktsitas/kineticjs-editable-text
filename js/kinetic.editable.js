@@ -542,7 +542,7 @@ function init(KineticModule){
             });
         },
 
-        newLine: function() {
+        newLine: function(quiet) {
             var that = this,
                 layer = this.getLayer();
 
@@ -579,7 +579,9 @@ function init(KineticModule){
 
                 that.detectCursorPosition();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) that.fire('change')
             }
         },
 
@@ -806,7 +808,7 @@ function init(KineticModule){
 
                     for (i = 0; i < string.length; i++) {
                         if (/\r\n|\r|\n/g.exec(string[i]))
-                            this.newLine();
+                            this.newLine(true);
                         else
                             this.addChar(string[i])
                     }
