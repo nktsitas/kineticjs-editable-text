@@ -334,43 +334,39 @@ function init(KineticModule){
                                 pasteModal.focus();
 
                                 setTimeout(function() {
-                                    var currentTextString = that.tempText[that.currentLine].text(),
-                                        textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos),
-                                        textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length),
-                                        pastedText = $("#" + that.config.pasteModal).val(),
-                                        pastedTextLinesArray = pastedText.split(/\r\n|\r|\n/g);
+                                    var pastedText = $("#" + that.config.pasteModal).val(),
+                                        pastedLines = pastedText.split(/\r\n|\r|\n/g),
+                                        pastedLastLineLength = pastedLines[pastedLines.length - 1].length,
+                                        previousCursorPos = that.currentWordCursorPos,
+                                        previousLine = that.currentLine,
+                                        cursorLineText = that.tempText[that.currentLine].text(),
+                                        textBeforeCursor = cursorLineText.substring(0, previousCursorPos),
+                                        textAfterCursor = cursorLineText.substring(previousCursorPos, cursorLineText.length),
+                                        lines = "";
 
-                                    $.each(pastedTextLinesArray, function(index, iterPastedLine) {
-                                        if (index > 0) that.newLine();
+                                    for (var i = 0; i < that.tempText.length; i++) {
+                                        if (i === that.currentLine)
+                                            lines += textBeforeCursor + pastedText + textAfterCursor;
 
-                                        var newTextString = index > 0 ?
-                                                '' : textBeforeCursor + iterPastedLine + (index == pastedTextLinesArray.length - 1 ? textAfterCursor : '');
+                                        else lines += that.tempText[i].text();
 
-                                        that.tempText[that.currentLine].text(newTextString);
+                                        if (typeof that.tempText[i + 1] !== "undefined")
+                                            lines += "\n"
+                                    }
 
-                                        that.currentWordCursorPos += iterPastedLine.length;
-                                        that.currentWordLetters += iterPastedLine.length;
+                                    that.text(lines);
 
-                                        that.detectCursorPosition();
+                                    if (that.currentLine != previousLine)
+                                        that.currentWordCursorPos = pastedLastLineLength;
 
-                                        $.each(that.tempText, function(index2, iterTempText) {
-                                            if (iterTempText.width() > that.maxWidth) that.maxWidth = iterTempText.width()
-                                        });
+                                    else that.currentWordCursorPos = previousCursorPos + pastedLastLineLength;
 
-                                        if (that.maxWidth < that.tempText[that.currentLine].width())
-                                            that.maxWidth = that.tempText[that.currentLine].width();
+                                    that.currentLine = previousLine + pastedLines.length - 1;
 
-                                        if (that.tempText[that.currentLine].width() >= that.maxWidth)
-                                            that.focusRect.width(
-                                                80 < that.tempText[that.currentLine].width() ?
-                                                    that.tempText[that.currentLine].width() + 20 : 100
-                                            );
+                                    that.detectCursorPosition();
 
-                                        that.focusRectW = that.focusRect.width();
-
-                                        layer.draw()
-                                    })
-                                }, 1)
+                                    layer.draw()
+                                }, 0)
                             }
 
                             break;
