@@ -631,7 +631,7 @@ function init(KineticModule){
             }
         },
 
-        removeChar: function(code) {
+        removeChar: function(code, quiet) {
             var that = this,
                 layer = this.getLayer();
 
@@ -746,7 +746,9 @@ function init(KineticModule){
 
                 that.focusRectW = that.focusRect.width();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) that.fire('change')
             }
         },
 
