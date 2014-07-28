@@ -334,43 +334,39 @@ function init(KineticModule){
                                 pasteModal.focus();
 
                                 setTimeout(function() {
-                                    var currentTextString = that.tempText[that.currentLine].text(),
-                                        textBeforeCursor = currentTextString.substring(0, that.currentWordCursorPos),
-                                        textAfterCursor = currentTextString.substring(that.currentWordCursorPos, currentTextString.length),
-                                        pastedText = $("#" + that.config.pasteModal).val(),
-                                        pastedTextLinesArray = pastedText.split(/\r\n|\r|\n/g);
+                                    var pastedText = $("#" + that.config.pasteModal).val(),
+                                        pastedLines = pastedText.split(/\r\n|\r|\n/g),
+                                        pastedLastLineLength = pastedLines[pastedLines.length - 1].length,
+                                        previousCursorPos = that.currentWordCursorPos,
+                                        previousLine = that.currentLine,
+                                        cursorLineText = that.tempText[that.currentLine].text(),
+                                        textBeforeCursor = cursorLineText.substring(0, previousCursorPos),
+                                        textAfterCursor = cursorLineText.substring(previousCursorPos, cursorLineText.length),
+                                        lines = "";
 
-                                    $.each(pastedTextLinesArray, function(index, iterPastedLine) {
-                                        if (index > 0) that.newLine();
+                                    for (var i = 0; i < that.tempText.length; i++) {
+                                        if (i === that.currentLine)
+                                            lines += textBeforeCursor + pastedText + textAfterCursor;
 
-                                        var newTextString = index > 0 ?
-                                                '' : textBeforeCursor + iterPastedLine + (index == pastedTextLinesArray.length - 1 ? textAfterCursor : '');
+                                        else lines += that.tempText[i].text();
 
-                                        that.tempText[that.currentLine].text(newTextString);
+                                        if (typeof that.tempText[i + 1] !== "undefined")
+                                            lines += "\n"
+                                    }
 
-                                        that.currentWordCursorPos += iterPastedLine.length;
-                                        that.currentWordLetters += iterPastedLine.length;
+                                    that.text(lines);
 
-                                        that.detectCursorPosition();
+                                    if (that.currentLine != previousLine)
+                                        that.currentWordCursorPos = pastedLastLineLength;
 
-                                        $.each(that.tempText, function(index2, iterTempText) {
-                                            if (iterTempText.width() > that.maxWidth) that.maxWidth = iterTempText.width()
-                                        });
+                                    else that.currentWordCursorPos = previousCursorPos + pastedLastLineLength;
 
-                                        if (that.maxWidth < that.tempText[that.currentLine].width())
-                                            that.maxWidth = that.tempText[that.currentLine].width();
+                                    that.currentLine = previousLine + pastedLines.length - 1;
 
-                                        if (that.tempText[that.currentLine].width() >= that.maxWidth)
-                                            that.focusRect.width(
-                                                80 < that.tempText[that.currentLine].width() ?
-                                                    that.tempText[that.currentLine].width() + 20 : 100
-                                            );
+                                    that.detectCursorPosition();
 
-                                        that.focusRectW = that.focusRect.width();
-
-                                        layer.draw()
-                                    })
-                                }, 1)
+                                    layer.draw()
+                                }, 0)
                             }
 
                             break;
@@ -546,7 +542,7 @@ function init(KineticModule){
             });
         },
 
-        newLine: function() {
+        newLine: function(quiet) {
             var that = this,
                 layer = this.getLayer();
 
@@ -583,11 +579,13 @@ function init(KineticModule){
 
                 that.detectCursorPosition();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) that.fire('change')
             }
         },
 
-        addChar: function(e) {
+        addChar: function(e, quiet) {
             var that = this,
                 layer = this.getLayer();
 
@@ -627,11 +625,13 @@ function init(KineticModule){
 
                 that.focusRectW = that.focusRect.width();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) that.fire('change')
             }
         },
 
-        removeChar: function(code) {
+        removeChar: function(code, quiet) {
             var that = this,
                 layer = this.getLayer();
 
@@ -746,7 +746,9 @@ function init(KineticModule){
 
                 that.focusRectW = that.focusRect.width();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) that.fire('change')
             }
         },
 
@@ -754,7 +756,7 @@ function init(KineticModule){
 
         deleteChar: function() { this.removeChar(46) },
 
-        clear: function() {
+        clear: function(quiet) {
             var layer = this.getLayer();
 
             if (!layer) throw this.noLayerError;
@@ -786,11 +788,13 @@ function init(KineticModule){
 
                 this.detectCursorPosition();
 
-                layer.draw()
+                layer.draw();
+
+                if (quiet !== true) this.fire('change')
             }
         },
 
-        text: function(string) {
+        text: function(string, quiet) {
             var i;
 
             if (arguments.length === 0) {
@@ -799,19 +803,28 @@ function init(KineticModule){
                 for (i = 0; i < this.tempText.length; i++){
                     text += this.tempText[i].text();
 
-                    if (typeof this.tempText[i + 1] !== "undefined" && this.tempText[i + 1].text() !== '') text += "\n"
+                    if (typeof this.tempText[i + 1] !== "undefined")
+                        text += "\n"
                 }
 
                 return text
             } else {
                 if (typeof string === "string") {
-                    this.clear();
+                    this.clear(true);
 
                     for (i = 0; i < string.length; i++) {
-                        this.addChar(string[i])
+                        if (/\r\n|\r|\n/g.exec(string[i]))
+                            this.newLine(true);
+                        else
+                            this.addChar(string[i], true)
                     }
+
+                    this.detectCursorPosition();
+
                 } else throw new Error("The first argument passed to Kinetic.EditableText.text() must be a string")
             }
+
+            if (quiet !== true) this.fire('change')
         }
     };
 
