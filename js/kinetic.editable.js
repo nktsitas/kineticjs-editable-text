@@ -14,8 +14,9 @@
 function init(KineticModule) {
     var Kinetic = window.Kinetic || KineticModule;
 
-    if (typeof Kinetic === "undefined")
+    if (typeof Kinetic === "undefined") {
         throw new Error("Kinetic must be a global variable or passed to init.");
+    }
 
     /**
      * EditableText constructor.  EditableText extends Text
@@ -27,7 +28,8 @@ function init(KineticModule) {
 
         config.fontSize = config.fontSize || 16;
         config.lineHeight = config.lineHeight || 1.3;
-        config.focusRectColor = config.focusRectColor || 'black';
+        this.focusRectColor = config.focusRectColor || 'black';
+        delete config['focusRectColor'];
         config.unfocusOnEnter = config.unfocusOnEnter || false;
         config.pasteModal = config.pasteModal || null;
 
@@ -37,22 +39,38 @@ function init(KineticModule) {
         this.initialRectW = (100 < config.fontSize * 3) ? config.fontSize * 4 : 100;
         this.initialRectH = textHeight + 10;
 
-        this.focusRectW = this.initialRectW;
+        // configure the default text.
+        this.defaultText = config.defaultText;
+        delete config['defaultText'];
+        if (this.defaultText && !config.text) {
+            config.text = this.defaultText;
+        }
+
+        var textlines = config.text.split('\n');
+        var maxLength = 0;
+
+        this.totalLines = textlines.length || 1;
+        this.currentLine = textlines.length - 1 || 0;
+        this.tempText = [];
+
+        for (var i = 0; i < this.totalLines; i++) {
+            var configTemp = Object.create(config);
+            configTemp.name = "EditableTextTemp";
+            this.tempText[i] = new Kinetic.Text(configTemp);
+            this.tempText[i].setText(textlines[i] + "");
+
+            if (this.tempText[i].width() > maxLength) {
+                maxLength = this.tempText[i].width();
+            }
+        }
+
+        this.focusRectW = maxLength + 20;
         this.focusRectH = this.initialRectH;
 
-        this.focusRectColor = config.focusRectColor;
-
-        this.tempText = [];
-        this.tempText[0] = new Kinetic.Text(config);
-        this.currentLine = 0;
-
         this.maxWidth = 0;
-        this.totalLines = 1;
 
-        this.currentWordLetters = 0;
-        this.currentWordCursorPos = 0;
-
-        this.noLayerError = new Error('The Kinetic.EditableText shape must be added to a layer!');
+        this.currentWordLetters = this.tempText[this.tempText.length - 1].getText().split(' ').length;
+        this.currentWordCursorPos = this.tempText[this.tempText.length - 1].getText().replace(/\n/g, "").length;
 
         this.noStageError = new Error('The Kinetic.EditableText shape must be added to a stage!');
 
@@ -65,11 +83,12 @@ function init(KineticModule) {
             canvas.fillStroke(this)
         };
 
+        this.config = config;
+
         // call super constructor
         Kinetic.Text.call(this, config);
         this.classType = "EditableText";
-
-        this.config = config;
+        this.className = "EditableText";
 
         this.ctrlDown = false;
         this.shiftDown = false;
@@ -106,11 +125,19 @@ function init(KineticModule) {
                     listening: false
                 });
 
+
+                if (this.defaultText == this.tempText[0].getText().trim()) {
+                    this.setText("");
+                    this.tempText[0].setText("");
+                    this.currentWordCursorPos = 0;
+                    this.currentWordLetters = 0;
+                }
+
                 this.cursorLine = new Kinetic.Line({
                     points: [
-                        this.x() + this.width() + 2,
+                        0,
                         this.y(),
-                        this.x() + this.width() + 2,
+                        0,
                         this.y() + this.focusRectH - 10
                     ],
 
@@ -120,12 +147,8 @@ function init(KineticModule) {
                 this.cursorInterval = setInterval(function () {
                     if (that.cursorLine.isVisible()) that.cursorLine.hide();
                     else that.cursorLine.show();
-
                     layer.draw()
                 }, 500);
-
-                if (stage.getPointerPosition())
-                    this.findCursorPosFromClick();
 
                 $.each(this.tempText, function (i, iterTempText) {
                     iterTempText.position({
@@ -138,8 +161,8 @@ function init(KineticModule) {
 
                 layer.add(this.focusRect);
                 layer.add(this.cursorLine);
-
-                layer.draw()
+                that.detectCursorPosition();
+                layer.draw();
             }
         },
 
@@ -212,7 +235,7 @@ function init(KineticModule) {
                             that.currentWordLetters)
                             that.currentWordCursorPos++;
 
-                        that.detectCursorPosition()
+                        that.detectCursorPosition();
                     }
                 });
 
@@ -241,7 +264,7 @@ function init(KineticModule) {
             theWord.text(cursorText.substring(0, this.currentWordCursorPos));
             var cursorX = this.tempText[this.currentLine].getX() + theWord.getWidth();
 
-            this.cursorLine.points([cursorX, cursorY, cursorX, cursorY + cursorLineHeight])
+            this.cursorLine.points([cursorX + 5, cursorY, cursorX + 5, cursorY + cursorLineHeight]);
         },
 
         // Check if user's click was inside this text
@@ -270,7 +293,14 @@ function init(KineticModule) {
                     finalText += iterTextLine.getText() + "\n"
                 });
 
-                this.setText(finalText);
+                if (!finalText || finalText.trim() == "") {
+                    this.setText(this.defaultText);
+                    this.tempText[0].setText(this.defaultText);
+                    this.focusRectW = this.initialRectW;
+                    this.focusRectH = this.initialRectH;
+                } else {
+                    this.setText(finalText);
+                }
 
                 this.focusRect.destroy();
                 this.cursorLine.destroy();
@@ -356,10 +386,11 @@ function init(KineticModule) {
 
                                 that.text(lines);
 
-                                if (that.currentLine != previousLine)
+                                if (that.currentLine != previousLine) {
                                     that.currentWordCursorPos = pastedLastLineLength;
-
-                                else that.currentWordCursorPos = previousCursorPos + pastedLastLineLength;
+                                } else {
+                                    that.currentWordCursorPos = previousCursorPos + pastedLastLineLength;
+                                }
 
                                 that.currentLine = previousLine + pastedLines.length - 1;
 
@@ -546,6 +577,39 @@ function init(KineticModule) {
             });
         },
 
+        toObject: function () {
+            var type = Kinetic.Util,
+                obj = {},
+                attrs = this.getAttrs(),
+                key, val, getter, defaultValue;
+
+            obj.attrs = {};
+
+            // serialize only attributes that are not function, image, DOM, or objects with methods
+            for (key in attrs) {
+                val = attrs[key];
+                if (!type._isFunction(val) && !type._isElement(val) && !(type._isObject(val) && type._hasMethods(val))) {
+                    getter = this[key];
+                    // remove attr value so that we can extract the default value from the getter
+                    delete attrs[key];
+                    defaultValue = getter ? getter.call(this) : null;
+                    // restore attr value
+                    attrs[key] = val;
+
+                    if (key === 'text') {
+                        obj.attrs[key] = defaultValue.replace(/\n$/g, '');
+                    } else if (val) {
+                        obj.attrs[key] = val;
+                    } else {
+                        obj.attrs[key] = defaultValue;
+                    }
+                }
+            }
+
+            obj.className = this.getClassName();
+            return obj;
+        },
+
         newLine: function (quiet) {
             var that = this,
                 layer = this.getLayer();
@@ -618,14 +682,16 @@ function init(KineticModule) {
                     if (iterTempText.width() > that.maxWidth) that.maxWidth = iterTempText.width()
                 });
 
-                if (that.maxWidth < that.tempText[that.currentLine].width())
+                if (that.maxWidth < that.tempText[that.currentLine].width()) {
                     that.maxWidth = that.tempText[that.currentLine].width();
+                }
 
-                if (that.tempText[that.currentLine].width() >= that.maxWidth)
+                if (that.tempText[that.currentLine].width() >= that.maxWidth) {
                     that.focusRect.width(
                         80 < that.tempText[that.currentLine].width() ?
                         that.tempText[that.currentLine].width() + 20 : 100
                     );
+                }
 
                 that.focusRectW = that.focusRect.width();
 
@@ -666,10 +732,17 @@ function init(KineticModule) {
 
                         that.currentLine--;
 
-                        for (i = that.currentLine + 1; i < that.totalLines - 1; i++)
+                        for (i = that.currentLine + 1; i < that.totalLines - 1; i++) {
                             that.tempText[i].text(that.tempText[i + 1].text())
+                        }
+
+                        console.log(that.tempText[i].text());
 
                         that.tempText[i].text("");
+
+                        that.tempText[i].destroy();
+
+                        that.tempText.splice(i);
 
                         that.focusRect.height(that.focusRect.height() - that.lineHeightPx);
 
@@ -781,10 +854,8 @@ function init(KineticModule) {
                 this.focusRectW = this.initialRectW;
                 this.focusRectH = this.initialRectH;
 
-                this.focusRect.size({
-                    width: this.focusRectW,
-                    height: this.focusRectH
-                });
+                this.focusRect.width = this.focusRectW;
+                this.focusRect.height = this.focusRectH;
 
                 this.currentLine = 0;
                 this.totalLines = 1;
@@ -811,8 +882,9 @@ function init(KineticModule) {
                 for (i = 0; i < this.tempText.length; i++) {
                     text += this.tempText[i].text();
 
-                    if (typeof this.tempText[i + 1] !== "undefined")
+                    if (typeof this.tempText[i + 1] !== "undefined") {
                         text += "\n"
+                    }
                 }
 
                 return text
