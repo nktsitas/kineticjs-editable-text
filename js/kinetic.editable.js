@@ -30,7 +30,6 @@ function init(KineticModule) {
      */
     Kinetic.EditableText = function (config) {
         config.name = "EditableText";
-
         config.fontSize = config.fontSize || 16;
         config.lineHeight = config.lineHeight || 1.3;
         this.focusRectColor = config.focusRectColor || 'black';
@@ -60,9 +59,11 @@ function init(KineticModule) {
         this.totalLines = textlines.length || 1;
         this.currentLine = textlines.length - 1 || 0;
         this.tempText = [];
+        this.configTemp = Object.create(config);
+        this.configTemp.draggable = false;            
 
         for (i = 0; i < this.totalLines; i++) {
-            this.tempText[i] = new Kinetic.Text(config);
+            this.tempText[i] = new Kinetic.Text(this.configTemp);
             this.tempText[i].setText(textlines[i]);
 
             if (this.tempText[i].width() > maxLength) {
@@ -683,7 +684,7 @@ function init(KineticModule) {
             that.totalLines++;
 
             var newLineIndex = that.totalLines - 1;
-            that.tempText[newLineIndex] = new Kinetic.Text(that.config);
+            that.tempText[newLineIndex] = new Kinetic.Text(that.configTemp);
 
             layer.add(that.tempText[newLineIndex]);
 
