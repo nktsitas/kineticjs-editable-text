@@ -1,4 +1,3 @@
-"use strict";
 /*jslint browser: true*/
 /**
  * KineticJS EditableText Extension
