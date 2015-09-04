@@ -15,11 +15,11 @@ This project use bower to control dependencies and grunt to make a build.
 
 To run the project for the first time, run in project root folder:
 
-$ npm install
+    $ npm install
 
 To make a build use:
 
-$ grunt publish 
+    $ grunt publish 
 
 This command will generate the build in /dist folder.
 
@@ -73,7 +73,7 @@ Remove all of the characters from the ```Kinetic.EditableText``` field.
 
 ## Example
 
-See [index.html](https://github.com/maltempi/kineticjs-editable-text/blob/master/demo/simple/index.html)
+See [index.html](https://github.com/maltempi/kineticjs-editable-text/blob/master/demo/basic/index.html)
 
 
 ## About
