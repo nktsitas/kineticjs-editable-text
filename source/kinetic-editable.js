@@ -59,7 +59,7 @@ function init(KineticModule) {
         this.currentLine = textlines.length - 1 || 0;
         this.tempText = [];
         this.configTemp = Object.create(config);
-        this.configTemp.draggable = false;            
+        this.configTemp.draggable = false;
 
         for (i = 0; i < this.totalLines; i++) {
             this.tempText[i] = new Kinetic.Text(this.configTemp);
@@ -316,8 +316,9 @@ function init(KineticModule) {
             });
 
             if (!finalText || finalText.trim() === "") {
-                this.setText(this.defaultText);
-                this.tempText[0].setText(this.defaultText);
+                var defaultText = this.defaultText || "";
+                this.setText(defaultText);
+                this.tempText[0].setText(defaultText);
                 this.focusRectW = this.initialRectW;
                 this.focusRectH = this.initialRectH;
             } else {
