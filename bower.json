@@ -1,10 +1,14 @@
 /* Here we put the project dependencies */
 {
   "name": "kineticjs-editable-text",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "homepage": "https://github.com/nktsitas/kineticjs-editable-text",
   "authors": [
-    "maltempi <tmmaltempi@gmail.com>"
+    /* alphabetically sorted */
+    "hoffmannkrzysztof <krzysiekpl@gmail.com>",
+    "maltempi <tmmaltempi@gmail.com>",
+    "mjhasbach <hasbach.git@gmail.com>",
+    "nktsitas <nktsitas@gmail.com>"
   ],
   "description": "A KineticJS library which enables text creation and editing directly on the canvas.",
   "keywords": [
