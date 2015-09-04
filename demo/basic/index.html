@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <style>
+            #pasteModalArea {
+                position: absolute;
+                width: 0;
+                height: 0;
+                top: -20px;
+                left: -20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
+        <label for="pasteModalArea"></label>
+        <textarea rows="10" cols="60" id="pasteModalArea"></textarea>
+        <script src="../../bower_components/jquery/dist/jquery.min.js"></script>
+        <script src="../../bower_components/kineticjs/kinetic.js"></script>
+        <script src="../../dist/kineticjs-editable-text-1.1.0.js"></script>
+        <script src="demo.js"></script> <!-- the magic occours here! -->
+    </body>
+</html>

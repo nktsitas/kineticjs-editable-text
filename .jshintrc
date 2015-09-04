@@ -1,0 +1,11 @@
+{
+    "browser": true,
+    "devel": true,
+    "jquery": true,
+    "unused": true,
+    "undef": true,
+    "globals": {},
+    "curly": true,
+    "newcap": true,
+    "indent": 4
+}

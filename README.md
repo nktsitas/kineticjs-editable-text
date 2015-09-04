@@ -9,6 +9,21 @@ This tool was created in order to avoid the HTML textarea popup when wanting to 
 
 Selecting text is not yet supported.
 
+## Developing
+
+This project use bower to control dependencies and grunt to make a build.
+
+To run the project for the first time, run in project root folder:
+
+    $ npm install
+
+To make a build use:
+
+    $ grunt publish 
+
+This command will generate the build in /dist folder.
+
+
 ## Initialization
 
 #### Without a module loader
@@ -58,7 +73,7 @@ Remove all of the characters from the ```Kinetic.EditableText``` field.
 
 ## Example
 
-See [index.html](https://github.com/nktsitas/kineticjs-editable-text/blob/master/index.html)
+See [index.html](https://github.com/maltempi/kineticjs-editable-text/blob/master/demo/basic/index.html)
 
 
 ## About
