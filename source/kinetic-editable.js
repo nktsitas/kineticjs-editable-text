@@ -32,6 +32,8 @@ function init(KineticModule) {
         config.fontSize = config.fontSize || 16;
         config.lineHeight = config.lineHeight || 1.3;
         this.focusRectColor = config.focusRectColor || 'black';
+        this.focusRectFill = config.focusRectFill || null;
+        this.focusRectOpacity = config.focusRectOpacity || 0;
         delete config.focusRectColor;
         config.unfocusOnEnter = config.unfocusOnEnter || false;
         config.pasteModal = config.pasteModal || null;
@@ -133,7 +135,9 @@ function init(KineticModule) {
                 height: this.totalLines * this.lineHeightPx + 5,
                 stroke: this.focusRectColor,
                 strokeWidth: 1,
-                listening: false
+                listening: false,
+                fill: this.focusRectFill,
+                opacity: this.focusRectOpacity
             });
 
 
@@ -165,6 +169,9 @@ function init(KineticModule) {
                 layer.draw();
             }, 500);
 
+            layer.add(this.cursorLine);
+            layer.add(this.focusRect);
+
             $.each(this.tempText, function (i, iterTempText) {
                 iterTempText.position({
                     x: that.x(),
@@ -173,9 +180,6 @@ function init(KineticModule) {
 
                 layer.add(iterTempText);
             });
-
-            layer.add(this.focusRect);
-            layer.add(this.cursorLine);
             that.detectCursorPosition();
             layer.draw();
 
